@@ -1,0 +1,8 @@
+.btn__vistas{
+    background-color: #EAECEF;
+    display:grid;
+    border-radius: 10px;
+    padding: 0px 20px;
+    place-content: center;
+    cursor: pointer;
+}

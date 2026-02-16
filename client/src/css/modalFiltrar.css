@@ -1,0 +1,66 @@
+.filtro-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 350px;
+    margin: 0 auto;
+  }
+  
+  .filtro-container h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    font-weight: bold;
+  }
+  
+  .filtro-container label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .filtro-fechas {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .filtro-container input[type="date"],
+  .filtro-container select, .filtro-container input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  
+  .filtro-botones {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    gap: 10px;
+  }
+  
+  .btn-restablecer {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #ccc;
+    background-color: white;
+    color: #000;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .btn-filtrar {
+    flex: 1;
+    padding: 10px;
+    background-color: var(--color-primary);
+    color: #000;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  

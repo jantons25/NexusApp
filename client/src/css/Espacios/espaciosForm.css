@@ -1,0 +1,264 @@
+/* Estilos adicionales para el wizard de espacios */
+.tarifas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.tarifa-card {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.tarifa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tarifa-header h4 {
+  margin: 0;
+  text-transform: capitalize;
+  color: var(--color-primary);
+}
+
+/* Switch toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--color-primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Input con botón */
+.input-with-button {
+  display: flex;
+  gap: 10px;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.btn-add {
+  padding: 10px 20px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.btn-add:hover {
+  background-color: #218838;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+/* Tags y elementos seleccionados */
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tag {
+  background-color: #e9ecef;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.selected-items,
+.equipamiento-list {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.equipamiento-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.equipamiento-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: white;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 5px;
+}
+
+.btn-remove:hover {
+  color: #c82333;
+}
+
+/* Selector de color */
+.color-picker-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Resumen */
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.resumen-item {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.resumen-item strong {
+  display: block;
+  color: var(--color-primary);
+  margin-bottom: 5px;
+}
+
+.resumen .form-group label {
+  color: black;
+  font-weight: bold;
+}
+
+.summary-details {
+  margin-top: 20px;
+}
+
+.summary-section {
+  margin-bottom: 20px;
+}
+
+.summary-section h4 {
+  color: black;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.tarifas-resumen {
+  display: flex;
+  gap: 15px;
+}
+
+.tarifa-resumen-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #e9ecef;
+  padding: 10px 15px;
+  border-radius: 6px;
+}
+
+.tarifa-resumen-item span {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.tarifa-resumen-item strong {
+  font-size: 16px;
+  color: var(--color-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tarifas-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .resumen-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tarifas-resumen {
+    flex-direction: column;
+  }
+  
+  .input-with-button {
+    flex-direction: column;
+  }
+}

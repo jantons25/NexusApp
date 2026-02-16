@@ -1,0 +1,12 @@
+.bloque__a{
+    width: max-content;
+    padding: 10px;
+    display: flex;
+    height: 100vh;
+}
+
+.bloque__b{
+    width: 100%;
+    padding: 20px;
+    height: max-content;
+}

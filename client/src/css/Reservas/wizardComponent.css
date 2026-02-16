@@ -1,0 +1,522 @@
+.wizard-component{
+    min-width: 1100px;
+}
+
+.wizard-component .container{
+    margin: 0 auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+}
+
+.wizard-component .container .page__one,
+.wizard-component .container .page__two{
+    border-radius: 16px;
+}
+
+.wizard-component .container .page__one{
+    width: 30%;
+    height: 80vh;
+    background-color: var(--color-primary);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 48px;
+    color: black;
+}
+
+.wizard-component .container .page__one .title{
+    font-weight: bold;
+    font-size: 1.3rem;
+    text-align: left;
+    width: 100%;
+}
+
+.wizard-component .container .page__one .steps{
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.wizard-component .container .page__one .steps .step{
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: center;
+}
+
+.wizard-component .container .page__one .steps .step span{
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+.wizard-component .container .page__one .steps .step.active span{
+    background-color: var(--color-secondary);
+    color: white;
+}
+
+.wizard-component .container .page__one .steps .step p{
+    font-weight: bold;
+    margin: 0;
+}
+
+.wizard-component .container .page__one .steps .separator{
+    width: 2px;
+    height: 32px;
+    background-color: white;
+    margin-left: 15px;
+}
+
+.wizard-component .container .page__two{
+    width: 70%;
+    height: 80vh;
+    background-color: rgb(234, 234, 234);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+/* Contenido de los pasos */
+.step-content {
+    width: 100%;
+    max-width: 600px;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.step-content h2 {
+    color: black;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+/* Formularios */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.time-group {
+    display: flex;
+    gap: 20px;
+}
+
+.time-group .form-group {
+    flex: 1;
+}
+
+/* Opciones de espacio y servicios */
+.options-grid, .services-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin: 20px 0 30px;
+}
+
+.option-card, .service-card {
+    padding: 20px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.option-card:hover, .service-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+.option-card.selected, .service-card.selected {
+    border-color: var(--color-primary);
+    background-color: var(--color-primary);
+    color: white;
+    font-weight: bold;
+}
+
+/* Botones */
+.button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+
+.btn-prev, .btn-next, .btn-submit {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-prev {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-next {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.btn-submit {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-prev:hover {
+    background-color: #5a6268;
+}
+
+.btn-next:hover {
+    background-color: #0056b3;
+}
+
+.btn-submit:hover {
+    background-color: #218838;
+}
+
+/* Resumen */
+.resumen {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.resumen h3 {
+    color: black;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.resumen p {
+    margin: 8px 0;
+    color: #333;
+}
+
+/* Estilos adicionales */
+.step-content textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    resize: vertical;
+  }
+  
+  .step-content select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    background-color: white;
+  }
+  
+  .precio-total {
+    background: #e8f5e9;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    text-align: center;
+  }
+  
+  .precio-total h3 {
+    color: #2e7d32;
+    margin: 0;
+  }
+  
+  .option-card h3, .service-card h3 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+  }
+  
+  .option-card p, .service-card p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .option-card.selected p, .service-card.selected p {
+    color: white;
+  }
+
+  /* Alerta de conflicto de horario */
+.conflicto-alerta {
+    background-color: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .conflicto-alerta h4 {
+    color: #856404;
+    margin: 0 0 15px 0;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .conflicto-detalle {
+    background-color: white;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+  }
+  
+  .conflicto-detalle p {
+    margin: 8px 0;
+    color: #333;
+    font-size: 14px;
+  }
+  
+  .conflicto-detalle strong {
+    color: #856404;
+    font-weight: 600;
+  }
+  
+  .conflicto-mensaje {
+    color: #856404;
+    font-weight: 500;
+    margin: 0;
+    font-size: 14px;
+    font-style: italic;
+  }
+  
+  .estado-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  
+  .estado-badge.pendiente {
+    background-color: #ffc107;
+    color: #856404;
+  }
+  
+  .estado-badge.confirmada {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .estado-badge.cancelada {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  /* Botón deshabilitado cuando hay conflicto */
+  .btn-next:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  .btn-next:disabled:hover {
+    background-color: #cccccc;
+    transform: none;
+  }
+
+  /* Banner de información del cliente */
+.cliente-info-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    animation: slideIn 0.4s ease-out;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .cliente-info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+  }
+  
+  .info-label {
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0.9;
+  }
+  
+  .info-value {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  
+  .info-badge {
+    background-color: rgba(255, 255, 255, 0.25);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    min-width: 40px;
+    text-align: center;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  /* Autocomplete wrapper */
+  .autocomplete-wrapper {
+    position: relative;
+  }
+  
+  /* Dropdown de sugerencias */
+  .sugerencias-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-top: -1px;
+  }
+  
+  /* Cada item de sugerencia */
+  .sugerencia-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .sugerencia-item:last-child {
+    border-bottom: none;
+    border-radius: 0 0 8px 8px;
+  }
+  
+  .sugerencia-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .sugerencia-principal {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  
+  .sugerencia-principal strong {
+    color: #333;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  
+  .sugerencia-detalle {
+    color: #666;
+    font-size: 13px;
+    background-color: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  
+  .sugerencia-secundaria {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+  }
+  
+  .sugerencia-secundaria span {
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Scrollbar personalizado para el dropdown */
+  .sugerencias-dropdown::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .sugerencias-dropdown::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 0 0 8px 0;
+  }
+  
+  .sugerencias-dropdown::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  
+  .sugerencias-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  /* Animación del input cuando tiene sugerencias */
+  .autocomplete-wrapper input:focus {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }

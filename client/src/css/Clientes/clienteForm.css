@@ -1,0 +1,255 @@
+/* Estilos específicos para el formulario de cliente */
+.cliente-form-container .container {
+    margin: 0 auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    gap: 16px;
+  }
+  
+  .cliente-form-container .container .page__one,
+  .cliente-form-container .container .page__two {
+    border-radius: 16px;
+  }
+  
+  .cliente-form-container .container .page__one {
+    width: 30%;
+    height: 70vh;
+    background-color: var(--color-primary);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 48px;
+    color: white;
+  }
+  
+  .cliente-form-container .container .page__one .title {
+    font-weight: bold;
+    font-size: 1.3rem;
+    text-align: left;
+    width: 100%;
+  }
+  
+  .cliente-form-container .container .page__one .steps {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .cliente-form-container .container .page__one .steps .step {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    align-items: center;
+  }
+  
+  .cliente-form-container .container .page__one .steps .step span {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: var(--color-primary);
+  }
+  
+  .cliente-form-container .container .page__one .steps .step.active span {
+    background-color: var(--color-secondary);
+    color: white;
+  }
+  
+  .cliente-form-container .container .page__one .steps .step p {
+    font-weight: bold;
+    margin: 0;
+  }
+  
+  .cliente-form-container .container .page__two {
+    width: 70%;
+    height: 70vh;
+    background-color: rgb(234, 234, 234);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+  }
+  
+  /* Formulario único (no wizard) */
+  .step-content.single-form {
+    width: 100%;
+    max-width: 800px;
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .step-content.single-form h2 {
+    color: var(--color-primary);
+    margin-bottom: 30px;
+    text-align: center;
+    font-size: 1.8rem;
+  }
+  
+  /* Filas de formulario */
+  .form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .form-row .form-group {
+    flex: 1;
+  }
+  
+  /* Campos de formulario */
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.1);
+  }
+  
+  .form-group input.error,
+  .form-group select.error {
+    border-color: #dc3545;
+  }
+  
+  .error-message {
+    color: #dc3545;
+    font-size: 14px;
+    margin-top: 5px;
+    display: block;
+  }
+  
+  .hint {
+    color: #6c757d;
+    font-size: 12px;
+    margin-top: 5px;
+    display: block;
+  }
+  
+  /* Botones específicos del formulario */
+  .single-form-buttons {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+  }
+  
+  .single-form-buttons .btn-prev {
+    background-color: #6c757d;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .single-form-buttons .btn-submit {
+    background-color: var(--color-primary);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .single-form-buttons .btn-prev:hover {
+    background-color: #5a6268;
+  }
+  
+  .single-form-buttons .btn-submit:hover {
+    background-color: #0056b3;
+  }
+  
+  .single-form-buttons .btn-submit:disabled,
+  .single-form-buttons .btn-prev:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Spinner para estado de carga */
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 8px;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .cliente-form-container .container {
+      flex-direction: column;
+    }
+    
+    .cliente-form-container .container .page__one,
+    .cliente-form-container .container .page__two {
+      width: 100%;
+      height: auto;
+    }
+    
+    .cliente-form-container .container .page__one {
+      padding: 20px;
+      gap: 20px;
+    }
+    
+    .form-row {
+      flex-direction: column;
+      gap: 15px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .step-content.single-form {
+      padding: 20px;
+    }
+    
+    .single-form-buttons {
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .single-form-buttons button {
+      width: 100%;
+    }
+  }

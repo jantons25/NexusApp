@@ -1,0 +1,30 @@
+.menu__agregar__item{
+    padding: .8rem 1.3rem;
+    border-radius: 3 px;
+    display: grid;
+    align-items: center;
+    grid-template-columns: 40px 0fr;
+    fill: #8491a5;
+    max-height: 50px;
+}
+
+.menu__agregar__item:not(:has(.menu__agregar__item__logo)):hover{
+    background-color: white;
+    fill: white;
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.menu__agregar__item:has(.menu__agregar__item__logo){
+    margin-bottom: 1rem;
+}
+
+.menu__agregar__icon{
+    width: 30px;
+    overflow: hidden;
+    justify-self: center;
+}
+
+.menu__agregar__title, .sidebar__info{
+    padding-left: 1.3rem;
+}

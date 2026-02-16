@@ -1,0 +1,89 @@
+.menu__flotante{
+    width: max-content;
+    border: 1px solid #ebecf0;
+    border-radius: 10px;
+    padding: 1rem 1rem;
+    background-color: var(--color-primary);
+}
+
+.menu__flotante__header{
+    width: 40%;
+    padding: 1.8rem 1rem;
+}
+
+.menu__flotante__body{
+    margin-left: auto;
+    padding-right: 20px;
+}
+
+
+.menu__flotante:hover .menu__flotante__item{
+    grid-template-columns: 40px 1fr;
+}
+
+.menu__flotante__list{
+    list-style: none;
+    padding: 0;
+    display: flex;
+    min-height: 100%;
+    flex-direction: row;
+    gap: .4rem;
+}
+
+.menu__flotante__item{
+    padding: .8rem 1.3rem;
+    border-radius: 3 px;
+    display: grid;
+    align-items: center;
+    grid-template-columns: 40px 0fr;
+    fill: #8491a5;
+    max-height: 50px;
+    transition: grid-template-columns .4s;
+}
+
+.menu__flotante__item:not(:has(.menu__flotante__item__logo)):hover{
+    background-color: white;
+    fill: white;
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.menu__flotante__item:has(.menu__flotante__item__logo){
+    margin-bottom: 1rem;
+}
+
+.menu__flotante__icon{
+    width: 30px;
+    overflow: hidden;
+    justify-self: center;
+}
+
+.smenu__flotante__text{
+    padding-left: 1.3rem;
+}
+
+.menu__flotante__logo{
+    margin: 0 auto;
+}
+
+.menu__flotante__hide{
+    overflow: hidden;
+}
+
+.menu__flotante__icon__user{
+    width: 40px;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 50%;
+}
+
+.menu__flotante__item__user{
+    margin-top: auto;
+    text-wrap: nowrap;
+    text-align: left;
+}
+
+.menu__flotante__title, .sidebar__info{
+    padding-left: 1.3rem;
+}
