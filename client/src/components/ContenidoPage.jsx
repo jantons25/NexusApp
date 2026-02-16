@@ -1,4 +1,4 @@
-import "../css/ContenidoPage.css";
+import "../css/contenidoPage.css";
 import ComprasList from "./ComprasList.jsx";
 import ProductsList from "./ProductsList.jsx";
 import SalidasList from "./SalidasList.jsx";
