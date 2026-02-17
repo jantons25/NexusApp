@@ -6,7 +6,7 @@ export const loginRequest = (user) => axios.post(`/login`, user)
 
 export const verifyTokenRequest = () => axios.get(`/verify`)
 
-export const logoutRequest = () => axios.get(`/logout`)
+export const logoutRequest = () => axios.post(`/logout`)
 
 export const getUsersRequest = () => axios.get(`/users`)
 
