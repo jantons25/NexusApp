@@ -6,6 +6,7 @@ import {
   getUsersRequest,
   deleteUserRequest,
   updateUserRequest,
+  logoutRequest,
 } from "../api/auth.js";
 import Cookies from "js-cookie";
 
@@ -25,7 +26,7 @@ export const AuthProvider = ({ children }) => {
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
-  const empresa = "NexusCowork"
+  const empresa = "NexusCowork";
 
   const signup = async (user) => {
     try {
@@ -52,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      Cookies.remove("token");
+      await logoutRequest();
       setUser(null);
       setIsAuthenticated(false);
     } catch (error) {
@@ -100,12 +101,6 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     async function checkLogin() {
-      const cookies = Cookies.get();
-      if (!cookies.token) {
-        setLoading(false);
-        setIsAuthenticated(false);
-        return setUser(null);
-      }
       try {
         const res = await verifyTokenRequest(cookies.token);
         if (!res.data) {
