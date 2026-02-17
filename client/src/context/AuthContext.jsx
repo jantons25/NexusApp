@@ -8,7 +8,6 @@ import {
   updateUserRequest,
   logoutRequest,
 } from "../api/auth.js";
-import Cookies from "js-cookie";
 
 export const AuthContext = createContext();
 
@@ -102,7 +101,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     async function checkLogin() {
       try {
-        const res = await verifyTokenRequest(cookies.token);
+        const res = await verifyTokenRequest();
         if (!res.data) {
           setIsAuthenticated(false);
           setLoading(false);
