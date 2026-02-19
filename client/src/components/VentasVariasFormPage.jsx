@@ -19,17 +19,18 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
   const { createVenta, updateLoteVentas } = useVenta();
   const [ventasTemporales, setVentasTemporales] = useState([]);
   const [textBoton, setTextBoton] = useState("Vender");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   //01.02.26
   const [productosSinStockRecepcion, setProductosSinStockRecepcion] = useState(
-    [],
+    []
   );
   const totalItems = ventasTemporales.reduce(
     (acc, venta) => acc + (venta.cantidad || 0),
-    0,
+    0
   );
   const totalImporte = ventasTemporales.reduce(
     (acc, venta) => acc + (venta.importe_venta || 0),
-    0,
+    0
   );
 
   const ventasParaEnviar = ventasTemporales.map((venta) => ({
@@ -38,16 +39,16 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
   }));
 
   const handleGuardarVentas = async () => {
+    if (isSubmitting) return; // bloquea doble click
+    setIsSubmitting(true);
+
     try {
       // Verificar stock en recepción
       const productosSinStockRecepcionTemp = verificarStockEnRecepcion();
 
       if (productosSinStockRecepcionTemp.length > 0) {
         setProductosSinStockRecepcion(productosSinStockRecepcionTemp);
-
-        const nombresProductos = productosSinStockRecepcionTemp
-          .map((v) => v.producto?.nombre || "Producto desconocido")
-          .join(", ");
+        setIsSubmitting(false); // reactiva porque no se guardará
         return;
       }
 
@@ -73,6 +74,8 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
       closeModal();
     } catch (error) {
       console.error("Error al guardar ventas múltiples:", error);
+    } finally {
+      setIsSubmitting(false); // reactiva siempre al final
     }
   };
 
@@ -110,13 +113,13 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
 
   useEffect(() => {
     if (venta?.ventas?.length > 0) {
-      setTextBoton("Actualizar")
+      setTextBoton("Actualizar");
       const ventasConProductoObj = venta.ventas.map((v) => ({
         ...v,
         producto: products.find(
           (p) =>
             p._id ===
-            (typeof v.producto === "string" ? v.producto : v.producto._id),
+            (typeof v.producto === "string" ? v.producto : v.producto._id)
         ),
       }));
       setVentasTemporales(ventasConProductoObj);
@@ -129,7 +132,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
   useEffect(() => {
     if (productoId) {
       const productoSeleccionado = products.find(
-        (product) => product._id === productoId,
+        (product) => product._id === productoId
       );
       if (productoSeleccionado && productoSeleccionado.precio_venta) {
         setValue("precio_venta", productoSeleccionado.precio_venta);
@@ -171,6 +174,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
         className="flex flex-row flex-wrap gap-4 align-center justify-start"
       >
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Producto</label>
           {errors.producto && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.producto.message}
@@ -189,6 +193,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
           </select>
         </div>
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Cantidad</label>
           {errors.cantidad && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.cantidad.message}
@@ -202,6 +207,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
           />
         </div>
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Precio</label>
           {errors.precio_venta && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.precio_venta.message}
@@ -216,6 +222,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
           />
         </div>
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Registró pago</label>
           {errors.pago_registrado && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.pago_registrado.message}
@@ -327,7 +334,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
                       <button
                         onClick={() => {
                           const nuevasVentas = ventasTemporales.filter(
-                            (_, i) => i !== index,
+                            (_, i) => i !== index
                           );
                           setVentasTemporales(nuevasVentas);
                         }}
@@ -366,11 +373,17 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
           </div>
           <div className="w-30 m-auto mt-2 flex justify-center align-center">
             <button
-              type="submit"
+              type="button"
               onClick={handleGuardarVentas}
-              className="bg-[#FCD535] text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2"
+              disabled={isSubmitting}
+              className={`px-4 py-2 rounded-md my-2 text-zinc-800
+        ${
+          isSubmitting
+            ? "bg-gray-400 cursor-not-allowed opacity-60"
+            : "bg-[#FCD535] hover:bg-yellow-300 hover:text-black"
+        }`}
             >
-              {textBoton}
+              {isSubmitting ? "Registrando..." : textBoton}
             </button>
           </div>
         </div>

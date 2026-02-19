@@ -489,6 +489,7 @@ function ReposicionesList({
               <th className="px-6 py-2 text-center bg-gray-100">Cantidad</th>
               <th className="px-6 py-2 text-center bg-gray-100">Habitación</th>
               <th className="px-6 py-2 text-center bg-gray-100">Responsable</th>
+              <th className="px-6 py-2 text-center bg-gray-100">Observaciones</th>
               <th className="px-6 py-2 text-center bg-gray-100">Acciones</th>
             </tr>
           </thead>
@@ -554,6 +555,14 @@ function ReposicionesList({
                 <td className="px-6 py-4 text-center">
                   {lote.reposiciones.slice(0, 3).map((repo, index) => (
                     <div key={index}>{repo.responsable || "-"}</div>
+                  ))}
+                  {lote.reposiciones.length > 3 && (
+                    <div className="text-gray-400 text-sm italic">otros...</div>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {lote.reposiciones.slice(0, 3).map((repo, index) => (
+                    <div key={index}>{repo.observacion || "-"}</div>
                   ))}
                   {lote.reposiciones.length > 3 && (
                     <div className="text-gray-400 text-sm italic">otros...</div>

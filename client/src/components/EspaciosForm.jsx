@@ -440,7 +440,7 @@ function EspacioWizard({closeModal, refreshPagina}) {
                       <span key={index} className="tag">
                         {servicio}
                       </span>
-                    )
+                    ),
                   )}
                 </div>
               </div>

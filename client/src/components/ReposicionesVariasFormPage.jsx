@@ -17,13 +17,14 @@ function ReposicionesVariasFormPage({
 
   const { createReposicion, updateLoteReposicion } = useReposicion();
   const [reposicionesTemporales, setReposicionesTemporales] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [productosSinStockRecepcion, setProductosSinStockRecepcion] = useState(
-    [],
+    []
   );
 
   const totalItems = reposicionesTemporales.reduce(
     (acc, reposicion) => acc + (Number(reposicion.cantidad) || 0),
-    0,
+    0
   );
 
   const calcularStockRecepcion = (producto) => {
@@ -43,24 +44,23 @@ function ReposicionesVariasFormPage({
       (reposicion) => {
         const stockRecepcion = calcularStockRecepcion(reposicion.producto);
         return reposicion.cantidad > stockRecepcion;
-      },
+      }
     );
 
     return productosSinStockTemp;
   };
 
   const handleGuardarReposiciones = async () => {
+    if (isSubmitting) return; // bloquea doble click
+    setIsSubmitting(true);
+
     try {
       // Verificar stock en recepción ANTES de guardar
       const productosSinStockRecepcionTemp = verificarStockEnRecepcion();
 
       if (productosSinStockRecepcionTemp.length > 0) {
         setProductosSinStockRecepcion(productosSinStockRecepcionTemp);
-
-        const nombresProductos = productosSinStockRecepcionTemp
-          .map((r) => r.producto?.nombre || "Producto desconocido")
-          .join(", ");
-
+        setIsSubmitting(false); // reactiva porque no se guardará
         return; // Detener la ejecución
       }
 
@@ -74,7 +74,8 @@ function ReposicionesVariasFormPage({
               : reposicion.producto._id,
           habitacion: reposicion.habitacion,
           responsable: reposicion.responsable,
-        }),
+          observacion: reposicion.observacion || "-",
+        })
       );
 
       if (reposicion && reposicion.reposiciones) {
@@ -94,6 +95,8 @@ function ReposicionesVariasFormPage({
       closeModal();
     } catch (err) {
       console.error("Error al guardar lote de reposiciones:", err);
+    } finally {
+      setIsSubmitting(false); // reactiva siempre al final
     }
   };
 
@@ -115,7 +118,7 @@ function ReposicionesVariasFormPage({
         producto: products.find(
           (p) =>
             p._id ===
-            (typeof s.producto === "string" ? s.producto : s.producto._id),
+            (typeof s.producto === "string" ? s.producto : s.producto._id)
         ),
       }));
       setReposicionesTemporales(reposicionesConProductoObj);
@@ -136,7 +139,7 @@ function ReposicionesVariasFormPage({
           <ul className="mt-2 text-left">
             {productosSinStockRecepcion.map((reposicion, idx) => {
               const stockRecepcion = calcularStockRecepcion(
-                reposicion.producto,
+                reposicion.producto
               );
               const salidas = reposicion.producto?.salidas || 0;
               const cantidadVendida =
@@ -162,6 +165,7 @@ function ReposicionesVariasFormPage({
         className="flex flex-row flex-wrap gap-4 items-center justify-start w-full"
       >
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Producto</label>
           {errors.producto && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.producto.message}
@@ -181,6 +185,7 @@ function ReposicionesVariasFormPage({
         </div>
 
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Cantidad</label>
           {errors.cantidad && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.cantidad.message}
@@ -198,6 +203,7 @@ function ReposicionesVariasFormPage({
         </div>
 
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Habitación</label>
           {errors.habitacion && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.habitacion.message}
@@ -229,6 +235,7 @@ function ReposicionesVariasFormPage({
         </div>
 
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Responsable</label>
           {errors.responsable && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.responsable.message}
@@ -248,6 +255,27 @@ function ReposicionesVariasFormPage({
           </select>
         </div>
 
+        {/* OBSERVACIÓN */}
+        <div className="relative w-60 my-2">
+          <label className="font-bold block text-left">Observaciones</label>
+          {errors.observacion && (
+            <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
+              {errors.observacion.message}
+            </p>
+          )}
+          <input
+            type="text"
+            placeholder="Observación (opcional)"
+            {...register("observacion", {
+              maxLength: {
+                value: 200,
+                message: "Máximo 200 caracteres",
+              },
+            })}
+            className="w-full bg-gray-200 px-4 py-2 rounded-md"
+          />
+        </div>
+
         <div className="w-32 flex justify-center items-center">
           <button
             type="submit"
@@ -256,7 +284,7 @@ function ReposicionesVariasFormPage({
             Agregar
           </button>
         </div>
-      </form>
+      </form> 
 
       <div className="bg-white pt-4 w-[75%]">
         <div className="max-h-[300px] overflow-y-auto">
@@ -270,6 +298,7 @@ function ReposicionesVariasFormPage({
                 <th className="px-6 py-3 text-center bg-green-200">Stock</th>
                 <th className="px-6 py-3 text-center">Habitación</th>
                 <th className="px-6 py-3 text-center">Responsable</th>
+                <th className="px-6 py-3 text-center">Observación</th>
                 <th className="px-6 py-3 text-center rounded-tr-[10px]">
                   Acción
                 </th>
@@ -307,11 +336,14 @@ function ReposicionesVariasFormPage({
                   <td className="px-6 py-4 text-center">
                     {reposicion.responsable}
                   </td>
+                  <td className="px-6 py-4 text-center">
+                    {reposicion.observacion || "-"}
+                  </td>
                   <td className="px-6 py-4 flex justify-center">
                     <button
                       onClick={() => {
                         const nuevas = reposicionesTemporales.filter(
-                          (_, i) => i !== index,
+                          (_, i) => i !== index
                         );
                         setReposicionesTemporales(nuevas);
                       }}
@@ -358,9 +390,15 @@ function ReposicionesVariasFormPage({
             <button
               type="button"
               onClick={handleGuardarReposiciones}
-              className="bg-[#FCD535] text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2"
+              disabled={isSubmitting}
+              className={`px-4 py-2 rounded-md my-2 text-zinc-800
+        ${
+          isSubmitting
+            ? "bg-gray-400 cursor-not-allowed opacity-60"
+            : "bg-[#FCD535] hover:bg-yellow-300 hover:text-black"
+        }`}
             >
-              Guardar Lote
+              {isSubmitting ? "Guardando..." : "Guardar Lote"}
             </button>
           </div>
         </div>

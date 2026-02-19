@@ -18,13 +18,14 @@ function CortesiasVariasFormPage({
 
   const { createCortesia, updateLoteCortesia } = useCortesia();
   const [cortesiasTemporales, setCortesiasTemporales] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [productosSinStockRecepcion, setProductosSinStockRecepcion] = useState(
-    [],
+    []
   );
 
   const totalItems = cortesiasTemporales.reduce(
     (acc, c) => acc + (Number(c.cantidad) || 0),
-    0,
+    0
   );
 
   // Después de las otras funciones, antes de handleGuardarCortesias
@@ -52,16 +53,16 @@ function CortesiasVariasFormPage({
   };
 
   const handleGuardarCortesias = async () => {
+    if (isSubmitting) return; // bloquea doble click
+    setIsSubmitting(true);
+
     try {
       // Verificar stock en recepción ANTES de guardar
       const productosSinStockRecepcionTemp = verificarStockEnRecepcion();
 
       if (productosSinStockRecepcionTemp.length > 0) {
         setProductosSinStockRecepcion(productosSinStockRecepcionTemp);
-
-        const nombresProductos = productosSinStockRecepcionTemp
-          .map((c) => c.producto?.nombre || "Producto desconocido")
-          .join(", ");
+        setIsSubmitting(false); // reactiva porque no se guardará
         return; // Detener la ejecución
       }
 
@@ -92,6 +93,8 @@ function CortesiasVariasFormPage({
       closeModal();
     } catch (err) {
       console.error("Error al guardar lote de cortesías:", err);
+    } finally {
+      setIsSubmitting(false); // reactiva siempre al final
     }
   };
 
@@ -115,7 +118,7 @@ function CortesiasVariasFormPage({
         producto: products.find(
           (p) =>
             p._id ===
-            (typeof c.producto === "string" ? c.producto : c.producto._id),
+            (typeof c.producto === "string" ? c.producto : c.producto._id)
         ),
       }));
       setCortesiasTemporales(cortesiasConProductoObj);
@@ -162,6 +165,7 @@ function CortesiasVariasFormPage({
       >
         {/* PRODUCTO */}
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Producto</label>
           {errors.producto && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.producto.message}
@@ -182,6 +186,7 @@ function CortesiasVariasFormPage({
 
         {/* CANTIDAD */}
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Cantidad</label>
           {errors.cantidad && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.cantidad.message}
@@ -200,6 +205,7 @@ function CortesiasVariasFormPage({
 
         {/* RESPONSABLE */}
         <div className="relative w-40 my-2">
+          <label className="font-bold block text-left">Responsable</label>
           {errors.responsable && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.responsable.message}
@@ -221,6 +227,7 @@ function CortesiasVariasFormPage({
 
         {/* OBSERVACIÓN */}
         <div className="relative w-60 my-2">
+          <label className="font-bold block text-left">Observaciones</label>
           {errors.observacion && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.observacion.message}
@@ -239,7 +246,7 @@ function CortesiasVariasFormPage({
           />
         </div>
 
-        <div className="w-32 flex justify-center items-center">
+        <div className="w-30 flex justify-center items-end">
           <button
             type="submit"
             className="bg-[#FCD535] text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2"
@@ -260,7 +267,7 @@ function CortesiasVariasFormPage({
                 </th>
                 <th className="px-6 py-3 text-center">Cantidad</th>
                 <th className="px-6 py-3 text-center bg-green-200">
-                  Stock Central
+                  Stock Recepción
                 </th>
                 <th className="px-6 py-3 text-center">Responsable</th>
                 <th className="px-6 py-3 text-center">Observación</th>
@@ -288,7 +295,10 @@ function CortesiasVariasFormPage({
                   </td>
                   <td className="px-6 py-4 text-center">{c.cantidad}</td>
                   <td className="px-6 py-4 text-center text-green-600 font-bold">
-                    {c.producto.ingresos - c.producto.salidas}
+                    {c.producto.salidas -
+                      (c.producto.cantidad_vendida +
+                        c.producto.cantidad_repuesta +
+                        c.producto.cantidad_cortesia)}
                   </td>
                   <td className="px-6 py-4 text-center">{c.responsable}</td>
                   <td className="px-6 py-4 text-center">
@@ -298,7 +308,7 @@ function CortesiasVariasFormPage({
                     <button
                       onClick={() => {
                         const nuevas = cortesiasTemporales.filter(
-                          (_, i) => i !== index,
+                          (_, i) => i !== index
                         );
                         setCortesiasTemporales(nuevas);
                       }}
@@ -346,9 +356,15 @@ function CortesiasVariasFormPage({
             <button
               type="button"
               onClick={handleGuardarCortesias}
-              className="bg-[#FCD535] text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2"
+              disabled={isSubmitting}
+              className={`px-4 py-2 rounded-md my-2 text-zinc-800
+        ${
+          isSubmitting
+            ? "bg-gray-400 cursor-not-allowed opacity-60"
+            : "bg-[#FCD535] hover:bg-yellow-300 hover:text-black"
+        }`}
             >
-              Guardar Lote
+              {isSubmitting ? "Guardando..." : "Guardar Lote"}
             </button>
           </div>
         </div>
