@@ -119,7 +119,7 @@ function VentasPage() {
           ) : null
         }
         opt6={
-          canAccess("recepcionista", "superadmin", "admin") ? (
+          canAccess("superadmin", "admin") ? (
             <OptListaCortesia onClick={() => setVistaActiva("Cortesias")} />
           ) : null
         }
