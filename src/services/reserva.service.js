@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
 import Reserva from "../models/reserva.model.js";
 import Cliente from "../models/cliente.model.js";
 import DetalleReserva from "../models/detalle_reserva.js";
+import { Types } from "mongoose";
 
 export const crearReserva = async (data) => {
   try {
@@ -174,7 +174,7 @@ export const actualizarReserva = async (id, data) => {
         inicio: { $lt: fin },
         fin: { $gt: inicio },
       },
-      null,
+      null
     );
 
     if (reservaSolapada) {
@@ -209,19 +209,17 @@ export const actualizarReserva = async (id, data) => {
 
       if (!cliente) {
         // Crear cliente nuevo
-        const creado = await Cliente.create(
-          [
-            {
-              nombre: c.nombre.trim(),
-              correo: c.correo?.trim().toLowerCase() || undefined, // <- importante, no ""
-              telefono: c.telefono?.trim() || "",
-              dni: c.dni?.trim() || undefined,
-              rol: "cliente",
-              estado: "activo",
-              origen_registro: data.tipo === "web" ? "web" : "interno",
-            },
-          ]
-        );
+        const creado = await Cliente.create([
+          {
+            nombre: c.nombre.trim(),
+            correo: c.correo?.trim().toLowerCase() || undefined, // <- importante, no ""
+            telefono: c.telefono?.trim() || "",
+            dni: c.dni?.trim() || undefined,
+            rol: "cliente",
+            estado: "activo",
+            origen_registro: data.tipo === "web" ? "web" : "interno",
+          },
+        ]);
         cliente = creado[0];
       } else {
         // Si deseas, puedes actualizar datos básicos del cliente existente
@@ -233,10 +231,7 @@ export const actualizarReserva = async (id, data) => {
         if (c.dni?.trim()) patch.dni = c.dni.trim();
 
         if (Object.keys(patch).length) {
-          await Cliente.updateOne(
-            { _id: cliente._id },
-            { $set: patch }
-          );
+          await Cliente.updateOne({ _id: cliente._id }, { $set: patch });
         }
       }
 
@@ -269,10 +264,7 @@ export const actualizarReserva = async (id, data) => {
     const reservaActualizada = await Reserva.findByIdAndUpdate(
       id,
       updateReserva,
-      {
-        new: true,
-        runValidators: true
-      }
+      { new: true, runValidators: true }
     );
 
     if (!reservaActualizada) throw new Error("Error al actualizar la reserva.");
@@ -285,18 +277,30 @@ export const actualizarReserva = async (id, data) => {
     const d = data.detalle || {};
 
     if (!detalle) {
-      // crear detalle mínimo
-      const creado = await DetalleReserva.create(
-        [
-          {
-            reserva: id,
-            moneda: d.moneda || "PEN",
-            importe_total: Number(d.importe_total || 0),
-            pagos: [],
-            observaciones_generales: d.observaciones_generales || "",
-          },
-        ]
-      );
+      // Si viene pago_actualizado pero no hay detalle, convertirlo a nuevo_pago
+      const pagoInicial = d.pago_actualizado || d.nuevo_pago;
+      const pagosIniciales =
+        pagoInicial && Number(pagoInicial.monto_pago) > 0
+          ? [
+              {
+                monto_pago: Number(pagoInicial.monto_pago),
+                metodo_pago: pagoInicial.metodo_pago || "efectivo",
+                observacion_pago: pagoInicial.observacion_pago || "",
+                registrado_por: data.usuario || null,
+                fecha_pago: new Date(),
+              },
+            ]
+          : [];
+
+      const creado = await DetalleReserva.create([
+        {
+          reserva: id,
+          moneda: d.moneda || "PEN",
+          importe_total: Number(d.importe_total || 0),
+          pagos: pagosIniciales, // ← incluir el pago desde el inicio
+          observaciones_generales: d.observaciones_generales || "",
+        },
+      ]);
       detalle = creado[0];
     } else {
       // actualizar campos base del detalle
@@ -311,14 +315,15 @@ export const actualizarReserva = async (id, data) => {
       if (Object.keys(patchDetalle).length) {
         await DetalleReserva.updateOne(
           { _id: detalle._id },
-          { $set: patchDetalle },
+          { $set: patchDetalle }
         );
       }
     }
 
-    // 6.1) Agregar un pago nuevo (si viene)
+    // 6.1) Manejar pagos
     if (d.nuevo_pago && Number(d.nuevo_pago.monto_pago) > 0) {
-      const pago = {
+      // ─── CASO A: Agregar pago nuevo ───
+      const nuevoPago = {
         monto_pago: Number(d.nuevo_pago.monto_pago),
         metodo_pago: d.nuevo_pago.metodo_pago || "efectivo",
         observacion_pago: d.nuevo_pago.observacion_pago || "",
@@ -330,15 +335,100 @@ export const actualizarReserva = async (id, data) => {
           : new Date(),
       };
 
+      // Actualizar DetalleReserva externo
       await DetalleReserva.updateOne(
         { _id: detalle._id },
-        { $push: { pagos: pago } }
+        { $push: { pagos: nuevoPago } }
+      );
+
+      // ✅ NUEVO: Sincronizar también en el detalle embebido de Reserva
+      await Reserva.updateOne(
+        { _id: id },
+        { $push: { "detalle.pagos": nuevoPago } }
+      );
+    } else if (d.pago_actualizado) {
+      // ─── CASO B: Actualizar pago existente ───
+      const pa = d.pago_actualizado;
+      const pagoId =
+        pa._id && Types.ObjectId.isValid(pa._id)
+          ? new Types.ObjectId(pa._id)
+          : null;
+      const monto = Number(pa.monto_pago);
+
+      if (pagoId) {
+        // ✅ NUEVO: Actualizar en DetalleReserva externo por _id del pago (más seguro que pagos.0)
+        await DetalleReserva.updateOne(
+          { _id: detalle._id, "pagos._id": pagoId },
+          {
+            $set: {
+              "pagos.$.monto_pago": monto,
+              "pagos.$.metodo_pago": pa.metodo_pago || "efectivo",
+              "pagos.$.observacion_pago": pa.observacion_pago || "",
+              "pagos.$.registrado_por": data.usuario || null,
+              "pagos.$.fecha_pago": new Date(),
+            },
+          }
+        );
+
+        // ✅ NUEVO: Sincronizar en el detalle embebido de Reserva por _id del pago
+        await Reserva.updateOne(
+          { _id: id, "detalle.pagos._id": pagoId },
+          {
+            $set: {
+              "detalle.pagos.$.monto_pago": monto,
+              "detalle.pagos.$.metodo_pago": pa.metodo_pago || "efectivo",
+              "detalle.pagos.$.observacion_pago": pa.observacion_pago || "",
+              "detalle.pagos.$.registrado_por": data.usuario || null,
+              "detalle.pagos.$.fecha_pago": new Date(),
+            },
+          }
+        );
+      } else {
+        // Fallback sin _id → usar posición 0 (comportamiento anterior)
+        await DetalleReserva.updateOne(
+          { _id: detalle._id, "pagos.0": { $exists: true } },
+          {
+            $set: {
+              "pagos.0.monto_pago": monto,
+              "pagos.0.metodo_pago": pa.metodo_pago || "efectivo",
+              "pagos.0.observacion_pago": pa.observacion_pago || "",
+              "pagos.0.registrado_por": data.usuario || null,
+              "pagos.0.fecha_pago": new Date(),
+            },
+          }
+        );
+
+        // ✅ NUEVO: Sincronizar fallback en embebido
+        await Reserva.updateOne(
+          { _id: id, "detalle.pagos.0": { $exists: true } },
+          {
+            $set: {
+              "detalle.pagos.0.monto_pago": monto,
+              "detalle.pagos.0.metodo_pago": pa.metodo_pago || "efectivo",
+              "detalle.pagos.0.observacion_pago": pa.observacion_pago || "",
+              "detalle.pagos.0.registrado_por": data.usuario || null,
+              "detalle.pagos.0.fecha_pago": new Date(),
+            },
+          }
+        );
+      }
+    }
+
+    // ✅ NUEVO - 6.2) Sincronizar importe_total y otros campos en el detalle embebido
+    if (d.importe_total !== undefined) {
+      await Reserva.updateOne(
+        { _id: id },
+        {
+          $set: {
+            "detalle.importe_total": Number(d.importe_total || 0),
+            "detalle.moneda": d.moneda || "PEN",
+            "detalle.observaciones_generales": d.observaciones_generales || "",
+          },
+        }
       );
     }
 
-    // 6.2) Releer el detalle para devolverlo actualizado (y disparar hooks si los usas)
-    // Si tu schema recalcula en pre('validate') y no en update,
-    // puedes forzar .save() aquí:
+    // 6.3) Releer detalle actualizado y forzar recálculo de virtuals
     let detalleActualizado = await DetalleReserva.findOne(
       { reserva: id },
       null
@@ -346,13 +436,25 @@ export const actualizarReserva = async (id, data) => {
     if (!detalleActualizado)
       throw new Error("No se pudo obtener el detalle actualizado.");
 
-    // Forzar recalculo/hook si tu schema lo recalcula en validate/save
-    // (Esto es útil porque updateOne/$push no dispara pre('validate') automáticamente)
-    await detalleActualizado.save();
-
+    try {
+      await detalleActualizado.save();
+    } catch (saveError) {
+      throw new Error(`Error al recalcular detalle: ${saveError.message}`);
+    } // dispara hooks pre('save') para recalcular total_pagado/saldo_pendiente
+    // ✅ NUEVO - 6.4) Releer reserva con populate completo
+    const reservaFinal = await Reserva.findById(id)
+      .populate("cliente", "nombre correo telefono dni estado")
+      .populate(
+        "espacio",
+        "nombre tipo capacidad descripcion precio_por_hora sede piso habilitado_reservas estado"
+      )
+      .populate("usuario", "nombre correo")
+      .lean();
+    if (!reservaFinal)
+      throw new Error("No se pudo releer la reserva actualizada.");
     return {
       mensaje: "Reserva actualizada correctamente.",
-      reserva: reservaActualizada,
+      reserva: reservaFinal, // ✅ CAMBIO: reservaFinal en lugar de reservaActualizada
       detalle: detalleActualizado,
     };
   } catch (error) {
@@ -423,10 +525,38 @@ export const getReservas = async (opts = {}) => {
     );
 
     // 4) Unir reserva + detalle
-    const data = reservas.map((reserva) => ({
-      reserva,
-      detalle: detalleByReservaId.get(String(reserva._id)) || null,
-    }));
+    // 4) Unir reserva + detalle
+    const data = reservas.map((reserva) => {
+      const detalleExterno = detalleByReservaId.get(String(reserva._id));
+
+      // Si no hay detalle externo, construirlo desde el detalle embebido
+      const detalle =
+        detalleExterno ??
+        (reserva.detalle
+          ? {
+              moneda: reserva.detalle.moneda,
+              importe_total: reserva.detalle.importe_total,
+              pagos: reserva.detalle.pagos ?? [],
+              observaciones_generales:
+                reserva.detalle.observaciones_generales ?? "",
+              total_pagado:
+                reserva.detalle.pagos?.reduce(
+                  (sum, p) => sum + (p.monto_pago || 0),
+                  0
+                ) ?? 0,
+              saldo_pendiente:
+                (reserva.detalle.importe_total || 0) -
+                (reserva.detalle.pagos?.reduce(
+                  (sum, p) => sum + (p.monto_pago || 0),
+                  0
+                ) ?? 0),
+              estado_pago: null,
+              facturado: false,
+            }
+          : null);
+
+      return { reserva, detalle };
+    });
 
     return {
       data,
@@ -476,7 +606,6 @@ export const getReservaById = async (id) => {
 };
 
 export const eliminarReserva = async (id, usuarioId, motivo = "") => {
-
   try {
     // 1) Buscar reserva
     const reserva = await Reserva.findById(id, null);

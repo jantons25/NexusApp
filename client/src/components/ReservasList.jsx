@@ -2,16 +2,9 @@ import { useState } from "react";
 import { useReserva } from "../context/ReservaContext.jsx";
 import ModalBigVarios from "./ModalBigVarios.jsx";
 import ModalConfirmacion from "./ModalConfirmacion.jsx";
-import ReservasVariasFormPage from "./ReservasVariasFormPage.jsx";
 import ReservaFormPage from "./WizardComponent.jsx";
 
-function ReservasList({
-  reservas,
-  espacios,
-  clientes,
-  refreshPagina,
-  vistaActiva,
-}) {
+function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
   reservas = reservas.data;
   const { cancelReserva } = useReserva();
   const [idReserva, setIdReserva] = useState(null);
@@ -38,7 +31,7 @@ function ReservasList({
 
   const confirmarEliminarReserva = async () => {
     try {
-      await cancelReserva(idReserva); 
+      await cancelReserva(idReserva);
       refreshPagina();
     } catch (error) {
       console.error("Error eliminando reserva:", error);
@@ -357,6 +350,7 @@ function ReservasList({
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
+                        timeZone: "America/Lima",
                       }
                     )}{" "}
                     {new Date(reserva.reserva.createdAt).toLocaleTimeString(
@@ -365,6 +359,7 @@ function ReservasList({
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: false,
+                        timeZone: "America/Lima",
                       }
                     )}
                   </td>
@@ -375,6 +370,7 @@ function ReservasList({
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
+                        timeZone: "America/Lima",
                       }
                     )}{" "}
                     {new Date(reserva.reserva.inicio).toLocaleTimeString(
@@ -383,6 +379,7 @@ function ReservasList({
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: false,
+                        timeZone: "America/Lima",
                       }
                     )}
                   </td>
@@ -391,11 +388,13 @@ function ReservasList({
                       day: "2-digit",
                       month: "2-digit",
                       year: "numeric",
+                      timeZone: "America/Lima",
                     })}{" "}
                     {new Date(reserva.reserva.fin).toLocaleTimeString("es-PE", {
                       hour: "2-digit",
                       minute: "2-digit",
                       hour12: false,
+                      timeZone: "America/Lima",
                     })}
                   </td>
                   <td className="px-6 py-4 font-medium text-center">
@@ -421,8 +420,11 @@ function ReservasList({
                   </td>
                   <td className="px-6 py-4 font-medium text-center">
                     S/{" "}
-                    {reserva.reserva.detalle.pagos &&
-                    reserva.reserva.detalle.pagos.length > 0
+                    {reserva.detalle?.pagos && reserva.detalle.pagos.length > 0
+                      ? parseFloat(reserva.detalle.pagos[0].monto_pago).toFixed(
+                          2
+                        )
+                      : reserva.reserva.detalle?.pagos?.length > 0
                       ? parseFloat(
                           reserva.reserva.detalle.pagos[0].monto_pago
                         ).toFixed(2)
@@ -430,7 +432,7 @@ function ReservasList({
                   </td>
                   <td className="px-6 py-4 font-medium text-center">
                     S/
-                    {parseFloat(reserva.reserva.detalle.importe_total).toFixed(
+                    {parseFloat(reserva.detalle.importe_total).toFixed(
                       2
                     )}
                   </td>

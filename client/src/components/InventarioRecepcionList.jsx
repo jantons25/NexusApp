@@ -1,10 +1,6 @@
-import { useState } from "react";
-import { useProduct } from "../context/ProductContext.jsx";
 import Tooltip from "./Tooltip.jsx";
 
 function InventarioCentralList({ products, compras, ventas, user }) {
-  const { deleteProduct } = useProduct();
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const calcularImporteVentaTotal = (productId) => {
     const ventasDelProducto = ventas.filter(

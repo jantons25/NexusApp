@@ -1,9 +1,11 @@
-import React, { useState, useContext, useEffect } from "react";
+import { toast } from "react-hot-toast";
+import React, { useState, useEffect } from "react";
 import "../css/Reservas/wizardComponent.css";
 import { FaCheck } from "react-icons/fa";
 import { useReserva } from "../context/ReservaContext.jsx";
 import { useEspacio } from "../context/EspacioContext.jsx";
 import { useCliente } from "../context/ClienteContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 function WizardComponent({
   closeModal,
@@ -19,6 +21,7 @@ function WizardComponent({
   const [sugerenciasClientes, setSugerenciasClientes] = useState([]);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const { user } = useAuth();
   const [reservationData, setReservationData] = useState({
     // Datos del espacio (paso 1)
     espacio_id: "",
@@ -66,13 +69,35 @@ function WizardComponent({
     const r = reserva.reserva; // La reserva viene dentro de { reserva, detalle }
     const d = reserva.detalle;
 
-    // Extraer fecha y horas del ISO
+    // ✅ Fallback: si el detalle externo no tiene pagos, usar el embebido
+    const pagos = d?.pagos?.length > 0 ? d.pagos : r.detalle?.pagos || [];
+
+    // ✅ Extraer fecha y hora siempre en zona Lima
+    const opcionesFecha = {
+      timeZone: "America/Lima",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    };
+    const opcionesHora = {
+      timeZone: "America/Lima",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    };
+
     const fechaInicio = new Date(r.inicio);
     const fechaFin = new Date(r.fin);
 
-    const fecha = fechaInicio.toISOString().split("T")[0];
-    const horaInicio = fechaInicio.toTimeString().slice(0, 5); // HH:MM
-    const horaFin = fechaFin.toTimeString().slice(0, 5);
+    // Fecha en formato YYYY-MM-DD
+    const partesFecha = fechaInicio
+      .toLocaleDateString("es-PE", opcionesFecha)
+      .split("/");
+    const fecha = `${partesFecha[2]}-${partesFecha[1]}-${partesFecha[0]}`;
+
+    // Horas en formato HH:MM
+    const horaInicio = fechaInicio.toLocaleTimeString("es-PE", opcionesHora);
+    const horaFin = fechaFin.toLocaleTimeString("es-PE", opcionesHora);
 
     // Extraer servicios del campo observaciones_generales
     let serviciosExtraidos = [];
@@ -102,9 +127,9 @@ function WizardComponent({
       observaciones_generales: d?.observaciones_generales || "",
       moneda: d?.moneda || "PEN",
       importe_total: d?.importe_total || 0,
-      pago_inicial: d?.pagos?.[0]?.monto_pago || 0,
-      metodo_pago: d?.pagos?.[0]?.metodo_pago || "efectivo",
-      observacion_pago: d?.pagos?.[0]?.observacion_pago || "",
+      pago_inicial: pagos[0]?.monto_pago || 0,
+      metodo_pago: pagos[0]?.metodo_pago || "efectivo",
+      observacion_pago: pagos[0]?.observacion_pago || "",
       tipo: r.tipo || "interna",
       descripcion: r.descripcion || "",
       observaciones: r.observaciones || "",
@@ -158,6 +183,15 @@ function WizardComponent({
 
   const handleNext = () => {
     if (currentStep === 2) {
+      // Validar que horaFin > horaInicio
+      if (reservationData.horaInicio && reservationData.horaFin) {
+        const inicio = new Date(`2000-01-01T${reservationData.horaInicio}`);
+        const fin = new Date(`2000-01-01T${reservationData.horaFin}`);
+        if (fin <= inicio) {
+          toast.error("La hora de fin debe ser mayor que la hora de inicio");
+          return;
+        }
+      }
       const conflicto = verificarConflictoHorario();
 
       if (conflicto) {
@@ -278,8 +312,7 @@ function WizardComponent({
   };
 
   const contarReservasCliente = (clienteId) => {
-    if (!clienteId) return 0;
-
+    if (!clienteId || !reservas?.data) return 0;
     return reservas.data.filter((r) => r.reserva.cliente._id === clienteId)
       .length;
   };
@@ -308,47 +341,36 @@ function WizardComponent({
       ? reservationData.servicios.filter((s) => s !== service)
       : [...reservationData.servicios, service];
 
-    setReservationData({
-      ...reservationData,
-      servicios: updatedServices,
+    setReservationData((prev) => {
+      const updatedServices = prev.servicios.includes(service)
+        ? prev.servicios.filter((s) => s !== service)
+        : [...prev.servicios, service];
+      return { ...prev, servicios: updatedServices };
     });
   };
 
-  const calcularPrecioTotal = () => {
-    // Buscar el espacio seleccionado para obtener su precio por hora
-    const espaciosBDeleccionado = espaciosBD.find(
-      (e) => e.id === reservationData.espacio_id
+  const calcularPrecioTotal = (datosActuales = reservationData) => {
+    const espacioSeleccionado = espaciosBD.find(
+      (e) => e.id === datosActuales.espacio_id
     );
-
     if (
-      !espaciosBDeleccionado ||
-      !reservationData.horaInicio ||
-      !reservationData.horaFin
-    ) {
+      !espacioSeleccionado ||
+      !datosActuales.horaInicio ||
+      !datosActuales.horaFin
+    )
       return 0;
-    }
 
-    // Calcular horas de diferencia
-    const horaInicio = new Date(`2000-01-01T${reservationData.horaInicio}`);
-    const horaFin = new Date(`2000-01-01T${reservationData.horaFin}`);
+    const horaInicio = new Date(`2000-01-01T${datosActuales.horaInicio}`);
+    const horaFin = new Date(`2000-01-01T${datosActuales.horaFin}`);
     const horas = (horaFin - horaInicio) / (1000 * 60 * 60);
 
-    // Calcular costo base del espacio
-    let total = espaciosBDeleccionado.precio_hora * horas;
-
-    // Agregar costo de servicios adicionales
-    reservationData.servicios.forEach((servicioNombre) => {
-      const servicio = servicios.find((s) => s.nombre === servicioNombre);
-      if (servicio) {
-        total += servicio.precio;
-      }
+    let total = espacioSeleccionado.precio_hora * horas;
+    datosActuales.servicios.forEach((nombre) => {
+      const s = servicios.find((s) => s.nombre === nombre);
+      if (s) total += s.precio;
     });
 
-    setReservationData((prev) => ({
-      ...prev,
-      importe_total: total,
-    }));
-
+    setReservationData((prev) => ({ ...prev, importe_total: total }));
     return total;
   };
 
@@ -361,16 +383,13 @@ function WizardComponent({
       return { inicio: null, fin: null };
     }
 
-    const inicio = new Date(
-      `${reservationData.fecha}T${reservationData.horaInicio}`
-    );
-    const fin = new Date(`${reservationData.fecha}T${reservationData.horaFin}`);
+    const horaInicioLimpia = reservationData.horaInicio.slice(0, 5); // siempre HH:MM
+    const horaFinLimpia = reservationData.horaFin.slice(0, 5); // siempre HH:MM
 
-    // Ajustar al huso horario de Perú (-05:00)
-    const inicioISO = inicio.toISOString().replace("Z", "-05:00");
-    const finISO = fin.toISOString().replace("Z", "-05:00");
+    const inicio = `${reservationData.fecha}T${horaInicioLimpia}:00-05:00`;
+    const fin = `${reservationData.fecha}T${horaFinLimpia}:00-05:00`;
 
-    return { inicio: inicioISO, fin: finISO };
+    return { inicio, fin };
   };
 
   const calcularEstadoReserva = (pagoInicial) => {
@@ -444,7 +463,7 @@ function WizardComponent({
     try {
       // Validaciones básicas (iguales)
       if (!reservationData.espacio_id) {
-        alert("Por favor seleccione un espacio");
+        toast.error("Por favor seleccione un espacio");
         return;
       }
 
@@ -453,22 +472,27 @@ function WizardComponent({
         !reservationData.horaInicio ||
         !reservationData.horaFin
       ) {
-        alert("Por favor complete la fecha y horario");
+        toast.error("Por favor complete la fecha y hora de la reserva");
         return;
       }
 
       if (!reservationData.cliente.nombre.trim()) {
-        alert("El nombre del cliente es obligatorio");
+        toast.error("Por favor ingrese el nombre del cliente");
         return;
       }
 
       if (reservationData.pago_inicial > reservationData.importe_total) {
-        alert("El abono no puede ser mayor al importe total");
+        toast.error("El pago inicial no puede ser mayor al importe total");
         return;
       }
 
       const { inicio, fin } = formatDateTimeISO();
       const estadoFinal = calcularEstadoReserva(reservationData.pago_inicial);
+
+      // Obtener el _id del primer pago si existe
+      const pagoExistenteId =
+        reservaInicial?.detalle?.pagos?.[0]?._id ??
+        reservaInicial?.reserva?.detalle?.pagos?.[0]?._id;
 
       // ⬇️ MODIFICAR: Preparar datos según el modo
       if (modo === "crear") {
@@ -498,7 +522,7 @@ function WizardComponent({
                   ", "
                 )}. ${reservationData.observaciones_generales}`
               : reservationData.observaciones_generales,
-          usuario: "67e73148062e37ff7821fb98",
+          usuario: user._id,
         };
 
         await createReserva(reservaData);
@@ -530,16 +554,26 @@ function WizardComponent({
                   )}. ${reservationData.observaciones_generales}`
                 : reservationData.observaciones_generales,
 
-            // Solo agregar nuevo pago si es diferente al inicial
-            nuevo_pago:
-              reservationData.pago_inicial > 0 &&
-              reservaInicial?.detalle?.pagos?.length === 0
-                ? {
+            // Si ya existe un pago → actualizarlo
+            // Si no existe y hay monto → crearlo como nuevo
+            ...(pagoExistenteId
+              ? {
+                  pago_actualizado: {
+                    _id: pagoExistenteId, // ← ahora envía el _id del pago
                     monto_pago: reservationData.pago_inicial,
                     metodo_pago: reservationData.metodo_pago,
                     observacion_pago: reservationData.observacion_pago,
-                  }
-                : undefined,
+                  },
+                }
+              : reservationData.pago_inicial > 0
+              ? {
+                  nuevo_pago: {
+                    monto_pago: reservationData.pago_inicial,
+                    metodo_pago: reservationData.metodo_pago,
+                    observacion_pago: reservationData.observacion_pago,
+                  },
+                }
+              : {}),
           },
 
           usuario: "67e73148062e37ff7821fb98",
@@ -547,9 +581,8 @@ function WizardComponent({
 
         await updateReserva(reservaId, reservaDataActualizar);
       }
-
+      await refreshPagina();
       closeModal();
-      refreshPagina();
 
       // Limpiar estados
       setConflictoDetectado(null);
@@ -586,7 +619,11 @@ function WizardComponent({
         `Error al ${modo === "crear" ? "crear" : "actualizar"} reserva:`,
         error
       );
-      alert(`Error al ${modo === "crear" ? "crear" : "actualizar"} la reserva`);
+      toast.error(
+        `Error al ${modo === "crear" ? "crear" : "actualizar"} reserva: ${
+          error.response?.data?.error || error.message
+        }`
+      );
     }
   };
 

@@ -6,16 +6,13 @@ import OptListaVentas from "../../components/OptListaVentas.jsx";
 import OptListaSalidas from "../../components/OptListaSalidas.jsx";
 import OptListaCortesia from "../../components/OptListaCortesia.jsx";
 import OptListaCompras from "../../components/OptListaCompras.jsx";
-import OptListaData from "../../components/OptListaData.jsx";
 import OptListaProductos from "../../components/OptListaProductos.jsx";
-import OptListaReposiciones from "../../components/OptListaReposiciones.jsx";
 
 function VentasPage() {
   const {
     user,
     users,
     getUsers,
-    empresa,
     ventas,
     getAllVentas,
     products,
@@ -111,13 +108,13 @@ function VentasPage() {
             <OptListaSalidas onClick={() => setVistaActiva("Salidas")} />
           ) : null
         }
-        opt5={
-          canAccess("recepcionista", "superadmin", "admin") ? (
-            <OptListaReposiciones
-              onClick={() => setVistaActiva("Reposiciones")}
-            />
-          ) : null
-        }
+        // opt5={
+        //   canAccess("recepcionista", "superadmin", "admin") ? (
+        //     <OptListaReposiciones
+        //       onClick={() => setVistaActiva("Reposiciones")}
+        //     />
+        //   ) : null
+        // }
         opt6={
           canAccess("superadmin", "admin") ? (
             <OptListaCortesia onClick={() => setVistaActiva("Cortesias")} />

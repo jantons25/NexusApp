@@ -92,6 +92,8 @@ export function ReservaProvider({ children }) {
     try {
       const res = await updateReservaRequest(id, reserva);
 
+      console.log("Respuesta de actualización:", res);
+
       setReservas((prev) => {
         const nuevoItem = {
           reserva: res.data.reserva,

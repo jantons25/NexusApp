@@ -17,11 +17,11 @@ function Tooltip({ text }) {
       <span
         className="
             pointer-events-none
-            absolute left-1/2 bottom-full z-20
-            hidden w-48 -translate-x-1/2 translate-y-1
-            rounded-md bg-gray-800 px-2 py-1
-            text-xs text-white shadow-lg
-            group-hover:block
+      absolute left-1/2 top-full z-50
+      hidden w-48 -translate-x-1/2
+      rounded-md bg-gray-800 px-2 py-1
+      text-xs text-white shadow-lg
+      group-hover:block
           "
       >
         {text}
