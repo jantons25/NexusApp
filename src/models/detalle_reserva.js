@@ -13,7 +13,7 @@ const pagoSchema = new mongoose.Schema(
     },
     metodo_pago: {
       type: String,
-      enum: ["efectivo", "yape", "plin", "transferencia", "tarjeta", "otro"],
+      enum: ["efectivo", "yape", "plin", "transferencia", "tarjeta", "culqi", "otro"],
       default: "efectivo",
     },
     // ✅ Útil para yape/plin/transferencia: nro operación, ID, etc.

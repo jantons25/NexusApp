@@ -27,7 +27,9 @@ export function EspacioProvider({ children }) {
       setEspacios(res.data);
     } catch (error) {
       toast.error(
-        `Error al obtener los espacios: ${error.response.data.error}`
+        `Error al obtener los espacios: ${
+          error.response?.data?.error || error.message
+        }`
       );
     }
   };
@@ -37,7 +39,11 @@ export function EspacioProvider({ children }) {
       const res = await getEspacioRequest(id);
       return res.data;
     } catch (error) {
-      toast.error(`Error al obtener el espacio: ${error.response.data.error}`);
+      toast.error(
+        `Error al obtener el espacio: ${
+          error.response?.data?.error || error.message
+        }`
+      );
     }
   };
 
@@ -47,22 +53,27 @@ export function EspacioProvider({ children }) {
       setEspacios((prev) => [...prev, res.data.espacio]);
       toast.success("Espacio creado");
     } catch (error) {
-      toast.error(`Error al crear el espacio: ${error.response.data.error}`);
+      toast.error(
+        `Error al crear el espacio: ${
+          error.response?.data?.error || error.message
+        }`
+      );
     }
   };
 
   const updateEspacio = async (id, espacio) => {
     try {
       const res = await updateEspacioRequest(id, espacio);
-      setEspacios((prev) => {
-        prev.map((e) => {
-          e._id === id ? res.data : e;
-        });
-      });
+      // CORRECCIÓN: el map anterior no tenía return, así que setEspacios recibía undefined
+      setEspacios((prev) =>
+        prev.map((e) => (e._id === id ? res.data.espacio : e))
+      );
       toast.success("Espacio actualizado");
     } catch (error) {
       toast.error(
-        `Error al actualizar el espacio: ${error.response.data.error}`
+        `Error al actualizar el espacio: ${
+          error.response?.data?.error || error.message
+        }`
       );
     }
   };
@@ -70,12 +81,21 @@ export function EspacioProvider({ children }) {
   const deleteEspacio = async (id) => {
     try {
       const res = await deleteEspacioRequest(id);
-      if (res.status === 204) {
-        setEspacios((prev) => prev.filter((espacio) => espacio._id !== id));
-        toast.success("Espacio eliminado");
-      }
+      // El backend devuelve 200 con soft delete (inactivo), no 204
+      setEspacios((prev) =>
+        prev.map((e) =>
+          e._id === id
+            ? { ...e, estado: "inactivo", habilitado_reservas: false }
+            : e
+        )
+      );
+      toast.success("Espacio desactivado");
     } catch (error) {
-      toast.error(`Error al eliminar el espacio: ${error.response.data.error}`);
+      toast.error(
+        `Error al eliminar el espacio: ${
+          error.response?.data?.error || error.message
+        }`
+      );
     }
   };
 

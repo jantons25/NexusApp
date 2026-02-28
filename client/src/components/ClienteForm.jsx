@@ -6,8 +6,9 @@ import { toast } from "react-hot-toast";
 function ClienteForm({ closeModal, refreshPagina, cliente = null }) {
   const { createCliente, updateCliente } = useCliente();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
 
-  // Estado inicial del formulario
+  // Al editar, los campos opcionales se pre-rellenan con los datos actuales
   const [clienteData, setClienteData] = useState({
     nombre: cliente?.nombre || "",
     correo: cliente?.correo || "",
@@ -19,130 +20,126 @@ function ClienteForm({ closeModal, refreshPagina, cliente = null }) {
     estado: cliente?.estado || "activo",
   });
 
-  // Estados para mensajes de error
   const [errors, setErrors] = useState({});
 
   const roles = [
     { value: "cliente", label: "Cliente" },
-    { value: "empresa", label: "Empresa" },
     { value: "admin", label: "Administrador" },
+    { value: "superadmin", label: "Super Administrador" },
   ];
 
+  // El backend solo acepta activo / inactivo
   const estados = [
     { value: "activo", label: "Activo" },
     { value: "inactivo", label: "Inactivo" },
-    { value: "pendiente", label: "Pendiente" },
   ];
 
-  const handleInputChange = (field, value) => {
-    setClienteData({
-      ...clienteData,
-      [field]: value,
-    });
+  /* ────────────── helpers ────────────── */
 
-    // Limpiar error del campo cuando el usuario empieza a escribir
-    if (errors[field]) {
-      setErrors({
-        ...errors,
-        [field]: "",
-      });
-    }
+  const handleInputChange = (field, value) => {
+    setClienteData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
-  const validateForm = () => {
+  /* ────────────── validaciones ────────────── */
+
+  const validateStep1 = () => {
     const newErrors = {};
 
-    // Validar nombre
-    if (!clienteData.nombre.trim()) {
+    if (!clienteData.nombre.trim())
       newErrors.nombre = "El nombre es obligatorio";
-    }
 
-    // Validar correo
-    if (!clienteData.correo.trim()) {
-      newErrors.correo = "El correo es obligatorio";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clienteData.correo)) {
+    if (!clienteData.correo.trim() && !clienteData.telefono.trim())
+      newErrors.correo = "Ingresa al menos un correo o teléfono";
+
+    if (
+      clienteData.correo.trim() &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clienteData.correo)
+    )
       newErrors.correo = "Correo electrónico inválido";
-    }
 
-    // Validar password (solo en creación)
+    if (clienteData.telefono && !/^[\d\s+()-]+$/.test(clienteData.telefono))
+      newErrors.telefono = "Teléfono inválido";
+
+    if (clienteData.dni && !/^\d{8}$/.test(clienteData.dni))
+      newErrors.dni = "DNI debe tener 8 dígitos";
+
+    // Contraseña solo obligatoria en creación
     if (!cliente) {
-      if (!clienteData.password.trim()) {
+      if (!clienteData.password.trim())
         newErrors.password = "La contraseña es obligatoria";
-      } else if (clienteData.password.length < 8) {
-        newErrors.password = "La contraseña debe tener al menos 8 caracteres";
-      } else if (
+      else if (clienteData.password.length < 8)
+        newErrors.password = "Mínimo 8 caracteres";
+      else if (
         !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(
           clienteData.password
         )
-      ) {
+      )
         newErrors.password =
           "Debe contener mayúsculas, minúsculas, números y caracteres especiales";
-      }
 
-      // Validar confirmación de password
-      if (!clienteData.confirmPassword.trim()) {
+      if (!clienteData.confirmPassword.trim())
         newErrors.confirmPassword = "Confirme la contraseña";
-      } else if (clienteData.password !== clienteData.confirmPassword) {
+      else if (clienteData.password !== clienteData.confirmPassword)
         newErrors.confirmPassword = "Las contraseñas no coinciden";
-      }
-    }
-
-    // Validar teléfono
-    if (clienteData.telefono && !/^[\d\s+()-]+$/.test(clienteData.telefono)) {
-      newErrors.telefono = "Teléfono inválido";
-    }
-
-    // Validar DNI
-    if (clienteData.dni && !/^\d{8}$/.test(clienteData.dni)) {
-      newErrors.dni = "DNI debe tener 8 dígitos";
     }
 
     return newErrors;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  /* ────────────── navegación entre pasos ────────────── */
 
-    // Validar formulario
-    const formErrors = validateForm();
-    if (Object.keys(formErrors).length > 0) {
-      setErrors(formErrors);
+  const handleNext = () => {
+    const stepErrors = validateStep1();
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
       return;
     }
+    setErrors({});
+    setCurrentStep(2);
+  };
 
+  const handlePrev = () => {
+    setErrors({});
+    setCurrentStep(1);
+  };
+
+  /* ────────────── submit final ────────────── */
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Preparar datos para enviar
+      // Solo enviamos los campos que el backend de updateCliente acepta
       const datosEnviar = {
         nombre: clienteData.nombre.trim(),
-        correo: clienteData.correo.trim(),
+        correo: clienteData.correo.trim() || undefined,
+        telefono: clienteData.telefono.trim() || undefined,
+        dni: clienteData.dni.trim() || undefined,
         rol: clienteData.rol,
-        telefono: clienteData.telefono.trim(),
-        dni: clienteData.dni.trim(),
         estado: clienteData.estado,
       };
 
-      // Solo incluir password si es creación de cliente o si se cambió
       if (!cliente) {
+        // Creación: incluir password
         datosEnviar.password = clienteData.password;
       }
 
       if (cliente) {
-        // Actualizar cliente existente
+        // ── ACTUALIZACIÓN ──
         await updateCliente(cliente._id, datosEnviar);
-        toast.success("Cliente actualizado correctamente");
+        // updateCliente del context ya lanza toast.success
       } else {
-        // Crear nuevo cliente
+        // ── CREACIÓN ──
         await createCliente(datosEnviar);
-        toast.success("Cliente creado correctamente");
+        // createCliente del context ya lanza toast.success
       }
 
-      // Cerrar modal y refrescar
       if (closeModal) closeModal();
       if (refreshPagina) refreshPagina();
 
-      // Resetear formulario si no es edición
+      // Limpiar solo si es creación
       if (!cliente) {
         setClienteData({
           nombre: "",
@@ -154,207 +151,279 @@ function ClienteForm({ closeModal, refreshPagina, cliente = null }) {
           dni: "",
           estado: "activo",
         });
+        setCurrentStep(1);
       }
     } catch (error) {
       console.error("Error al guardar cliente:", error);
-      toast.error(error.response?.data?.error || "Error al guardar cliente");
+      toast.error(
+        error.response?.data?.error ||
+          error.message ||
+          "Error al guardar cliente"
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
-    if (closeModal) {
-      closeModal();
-    }
-  };
+  /* ────────────── render ────────────── */
 
   return (
     <div className="cliente-form-container">
       <div className="container">
+        {/* ── Panel lateral izquierdo ── */}
         <div className="page__one">
           <section className="title">
             <h1>{cliente ? "Editar Cliente" : "Nuevo Cliente"}</h1>
           </section>
           <section className="steps">
-            <div className="step active">
-              <span>1</span>
-              <p>Información del Cliente</p>
+            <div
+              className={`step ${currentStep === 1 ? "active" : "completed"}`}
+            >
+              <span>{currentStep > 1 ? "✓" : "1"}</span>
+              <p>Datos Personales</p>
+            </div>
+            <div className={`step ${currentStep === 2 ? "active" : ""}`}>
+              <span>2</span>
+              <p>Rol y Estado</p>
             </div>
           </section>
         </div>
+
+        {/* ── Panel derecho ── */}
         <div className="page__two">
-          <div className="step-content single-form">
+          <div className="step-content">
             <form onSubmit={handleSubmit}>
-              <h2>{cliente ? "Editar Cliente" : "Registrar Nuevo Cliente"}</h2>
+              {/* ══════════════ PASO 1: Datos Personales ══════════════ */}
+              {currentStep === 1 && (
+                <>
+                  <h2>
+                    {cliente ? "Editar Datos Personales" : "Datos Personales"}
+                  </h2>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Nombre completo *</label>
-                  <input
-                    type="text"
-                    placeholder="Ingrese nombre completo"
-                    value={clienteData.nombre}
-                    onChange={(e) =>
-                      handleInputChange("nombre", e.target.value)
-                    }
-                    className={errors.nombre ? "error" : ""}
-                  />
-                  {errors.nombre && (
-                    <span className="error-message">{errors.nombre}</span>
-                  )}
-                </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Nombre completo *</label>
+                      <input
+                        type="text"
+                        placeholder="Ingrese nombre completo"
+                        value={clienteData.nombre}
+                        onChange={(e) =>
+                          handleInputChange("nombre", e.target.value)
+                        }
+                        className={errors.nombre ? "error" : ""}
+                      />
+                      {errors.nombre && (
+                        <span className="error-message">{errors.nombre}</span>
+                      )}
+                    </div>
 
-                <div className="form-group">
-                  <label>Correo electrónico *</label>
-                  <input
-                    type="email"
-                    placeholder="correo@ejemplo.com"
-                    value={clienteData.correo}
-                    onChange={(e) =>
-                      handleInputChange("correo", e.target.value)
-                    }
-                    className={errors.correo ? "error" : ""}
-                  />
-                  {errors.correo && (
-                    <span className="error-message">{errors.correo}</span>
-                  )}
-                </div>
-              </div>
-
-              {!cliente && (
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Contraseña *</label>
-                    <input
-                      type="password"
-                      placeholder="Ingrese contraseña segura"
-                      value={clienteData.password}
-                      onChange={(e) =>
-                        handleInputChange("password", e.target.value)
-                      }
-                      className={errors.password ? "error" : ""}
-                    />
-                    {errors.password && (
-                      <span className="error-message">{errors.password}</span>
-                    )}
-                    <small className="hint">
-                      Mínimo 8 caracteres con mayúsculas, minúsculas, números y
-                      caracteres especiales
-                    </small>
+                    <div className="form-group">
+                      <label>
+                        Correo electrónico {!clienteData.telefono && "*"}
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="correo@ejemplo.com"
+                        value={clienteData.correo}
+                        onChange={(e) =>
+                          handleInputChange("correo", e.target.value)
+                        }
+                        className={errors.correo ? "error" : ""}
+                      />
+                      {errors.correo && (
+                        <span className="error-message">{errors.correo}</span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="form-group">
-                    <label>Confirmar contraseña *</label>
-                    <input
-                      type="password"
-                      placeholder="Confirme la contraseña"
-                      value={clienteData.confirmPassword}
-                      onChange={(e) =>
-                        handleInputChange("confirmPassword", e.target.value)
-                      }
-                      className={errors.confirmPassword ? "error" : ""}
-                    />
-                    {errors.confirmPassword && (
-                      <span className="error-message">
-                        {errors.confirmPassword}
-                      </span>
-                    )}
+                  {/* Contraseña: solo en creación */}
+                  {!cliente && (
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Contraseña *</label>
+                        <input
+                          type="password"
+                          placeholder="Ingrese contraseña segura"
+                          value={clienteData.password}
+                          onChange={(e) =>
+                            handleInputChange("password", e.target.value)
+                          }
+                          className={errors.password ? "error" : ""}
+                        />
+                        {errors.password && (
+                          <span className="error-message">
+                            {errors.password}
+                          </span>
+                        )}
+                        <small className="hint">
+                          Mínimo 8 caracteres con mayúsculas, minúsculas,
+                          números y caracteres especiales
+                        </small>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Confirmar contraseña *</label>
+                        <input
+                          type="password"
+                          placeholder="Confirme la contraseña"
+                          value={clienteData.confirmPassword}
+                          onChange={(e) =>
+                            handleInputChange("confirmPassword", e.target.value)
+                          }
+                          className={errors.confirmPassword ? "error" : ""}
+                        />
+                        {errors.confirmPassword && (
+                          <span className="error-message">
+                            {errors.confirmPassword}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Teléfono {!clienteData.correo && "*"}</label>
+                      <input
+                        type="tel"
+                        placeholder="+51 999 999 999"
+                        value={clienteData.telefono}
+                        onChange={(e) =>
+                          handleInputChange("telefono", e.target.value)
+                        }
+                        className={errors.telefono ? "error" : ""}
+                      />
+                      {errors.telefono && (
+                        <span className="error-message">{errors.telefono}</span>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label>DNI</label>
+                      <input
+                        type="text"
+                        placeholder="Número de DNI (8 dígitos)"
+                        value={clienteData.dni}
+                        onChange={(e) =>
+                          handleInputChange("dni", e.target.value)
+                        }
+                        className={errors.dni ? "error" : ""}
+                        maxLength="8"
+                      />
+                      {errors.dni && (
+                        <span className="error-message">{errors.dni}</span>
+                      )}
+                    </div>
                   </div>
-                </div>
+
+                  <div className="button-group">
+                    <button
+                      type="button"
+                      className="btn-prev"
+                      onClick={closeModal}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-next"
+                      onClick={handleNext}
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
+                </>
               )}
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Teléfono</label>
-                  <input
-                    type="tel"
-                    placeholder="+51 999 999 999"
-                    value={clienteData.telefono}
-                    onChange={(e) =>
-                      handleInputChange("telefono", e.target.value)
-                    }
-                    className={errors.telefono ? "error" : ""}
-                  />
-                  {errors.telefono && (
-                    <span className="error-message">{errors.telefono}</span>
-                  )}
-                </div>
+              {/* ══════════════ PASO 2: Rol y Estado ══════════════ */}
+              {currentStep === 2 && (
+                <>
+                  <h2>Rol y Estado</h2>
 
-                <div className="form-group">
-                  <label>DNI</label>
-                  <input
-                    type="text"
-                    placeholder="Número de DNI (8 dígitos)"
-                    value={clienteData.dni}
-                    onChange={(e) => handleInputChange("dni", e.target.value)}
-                    className={errors.dni ? "error" : ""}
-                    maxLength="8"
-                  />
-                  {errors.dni && (
-                    <span className="error-message">{errors.dni}</span>
-                  )}
-                </div>
-              </div>
+                  {/* Resumen del paso 1 */}
+                  <div className="resumen-paso1">
+                    <p>
+                      <strong>Cliente:</strong> {clienteData.nombre}
+                    </p>
+                    {clienteData.correo && (
+                      <p>
+                        <strong>Correo:</strong> {clienteData.correo}
+                      </p>
+                    )}
+                    {clienteData.telefono && (
+                      <p>
+                        <strong>Teléfono:</strong> {clienteData.telefono}
+                      </p>
+                    )}
+                    {clienteData.dni && (
+                      <p>
+                        <strong>DNI:</strong> {clienteData.dni}
+                      </p>
+                    )}
+                  </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Rol</label>
-                  <select
-                    value={clienteData.rol}
-                    onChange={(e) => handleInputChange("rol", e.target.value)}
-                  >
-                    {roles.map((rol) => (
-                      <option key={rol.value} value={rol.value}>
-                        {rol.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Rol</label>
+                      <select
+                        value={clienteData.rol}
+                        onChange={(e) =>
+                          handleInputChange("rol", e.target.value)
+                        }
+                      >
+                        {roles.map((r) => (
+                          <option key={r.value} value={r.value}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div className="form-group">
-                  <label>Estado</label>
-                  <select
-                    value={clienteData.estado}
-                    onChange={(e) =>
-                      handleInputChange("estado", e.target.value)
-                    }
-                  >
-                    {estados.map((estado) => (
-                      <option key={estado.value} value={estado.value}>
-                        {estado.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                    <div className="form-group">
+                      <label>Estado</label>
+                      <select
+                        value={clienteData.estado}
+                        onChange={(e) =>
+                          handleInputChange("estado", e.target.value)
+                        }
+                      >
+                        {estados.map((e) => (
+                          <option key={e.value} value={e.value}>
+                            {e.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
-              <div className="button-group single-form-buttons">
-                <button
-                  type="button"
-                  className="btn-prev"
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="btn-submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span className="spinner"></span>
-                      {cliente ? "Actualizando..." : "Creando..."}
-                    </>
-                  ) : cliente ? (
-                    "Actualizar Cliente"
-                  ) : (
-                    "Crear Cliente"
-                  )}
-                </button>
-              </div>
+                  <div className="button-group">
+                    <button
+                      type="button"
+                      className="btn-prev"
+                      onClick={handlePrev}
+                      disabled={isSubmitting}
+                    >
+                      ← Anterior
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-submit"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="spinner"></span>
+                          {cliente ? "Actualizando..." : "Creando..."}
+                        </>
+                      ) : cliente ? (
+                        "Actualizar Cliente"
+                      ) : (
+                        "Crear Cliente"
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </form>
           </div>
         </div>

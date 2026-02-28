@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useEspacio } from "../context/EspacioContext.jsx";
 import ModalBig from "./ModalBig.jsx";
+import ModalConfirmacion from "./ModalConfirmacion.jsx";
 import EspacioFormPage from "./EspacioFormPage.jsx";
 
 function EspaciosList({ espacios, refreshPagina }) {
@@ -8,6 +9,9 @@ function EspaciosList({ espacios, refreshPagina }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEspacio, setSelectedEspacio] = useState(null);
   const [filtroNombre, setFiltroNombre] = useState("");
+
+  const [mostrarModalConfirmar, setMostrarModalConfirmar] = useState(false);
+  const [idEspacioAEliminar, setIdEspacioAEliminar] = useState(null);
 
   if (!espacios || espacios.length === 0) {
     return <h1 className="text-center text-gray-600">No hay espacios</h1>;
@@ -17,12 +21,9 @@ function EspaciosList({ espacios, refreshPagina }) {
     a.nombre.localeCompare(b.nombre)
   );
 
-  const espaciosFiltrados = espaciosOrdenados.filter((espacio) => {
-    const nombreMatch = espacio.nombre
-      .toLowerCase()
-      .includes(filtroNombre.toLowerCase());
-    return nombreMatch;
-  });
+  const espaciosFiltrados = espaciosOrdenados.filter((espacio) =>
+    espacio.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
+  );
 
   const estadoColors = {
     disponible: "bg-green-500",
@@ -30,6 +31,18 @@ function EspaciosList({ espacios, refreshPagina }) {
     reservado: "bg-orange-500",
     no_disponible: "bg-red-500",
     inactivo: "bg-slate-500",
+  };
+
+  const confirmarEliminarEspacio = async () => {
+    try {
+      await deleteEspacio(idEspacioAEliminar);
+      refreshPagina?.();
+    } catch (error) {
+      console.error("Error al desactivar espacio:", error);
+    } finally {
+      setMostrarModalConfirmar(false);
+      setIdEspacioAEliminar(null);
+    }
   };
 
   return (
@@ -41,7 +54,6 @@ function EspaciosList({ espacios, refreshPagina }) {
         ambiente esté listo para su uso.
       </p>
 
-      {/* CONTENEDOR CON SCROLL SOLO PARA EL BODY */}
       <div className="mt-2 max-h-[60vh] overflow-y-auto border rounded-lg">
         <table className="w-full table-auto text-sm text-left text-gray-700">
           <thead className="bg-gray-100 text-xs uppercase text-gray-500 sticky top-0">
@@ -103,7 +115,15 @@ function EspaciosList({ espacios, refreshPagina }) {
                   S/{parseFloat(espacio.precio_por_hora).toFixed(2)}
                 </td>
                 <td className="px-6 py-4 font-medium text-center">
-                  {espacio.habilitado_reservas}
+                  {espacio.habilitado_reservas ? (
+                    <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                      Sí
+                    </span>
+                  ) : (
+                    <span className="inline-block bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-semibold">
+                      No
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4 font-medium text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -119,7 +139,9 @@ function EspaciosList({ espacios, refreshPagina }) {
                   </div>
                 </td>
                 <td className="px-6 py-4 font-medium text-center">
-                  {espacio.descripcion}
+                  {espacio.descripcion || (
+                    <span className="text-gray-400 italic text-sm">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 font-medium text-center">
                   {espacio.servicios && espacio.servicios.length > 0 ? (
@@ -140,12 +162,12 @@ function EspaciosList({ espacios, refreshPagina }) {
                 <td className="px-6 py-4 font-medium text-center">
                   {espacio.equipamiento && espacio.equipamiento.length > 0 ? (
                     <div className="flex flex-wrap gap-1 justify-center">
-                      {espacio.equipamiento.map((equipamiento, index) => (
+                      {espacio.equipamiento.map((item, index) => (
                         <span
                           key={index}
                           className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded"
                         >
-                          {equipamiento}
+                          {item}
                         </span>
                       ))}
                     </div>
@@ -164,10 +186,14 @@ function EspaciosList({ espacios, refreshPagina }) {
                     Editar
                   </button>
                   <button
-                    onClick={() => deleteEspacio(espacio._id)}
+                    onClick={() => {
+                      setIdEspacioAEliminar(espacio._id);
+                      setMostrarModalConfirmar(true);
+                    }}
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs cursor-pointer"
+                    disabled={espacio.estado === "inactivo"}
                   >
-                    Eliminar
+                    Desactivar
                   </button>
                 </td>
               </tr>
@@ -176,6 +202,7 @@ function EspaciosList({ espacios, refreshPagina }) {
         </table>
       </div>
 
+      {/* Modal edición */}
       <ModalBig
         isOpen={isModalOpen}
         closeModal={() => setIsModalOpen(false)}
@@ -189,6 +216,17 @@ function EspaciosList({ espacios, refreshPagina }) {
             />
           ) : null
         }
+      />
+
+      {/* Modal confirmación desactivar */}
+      <ModalConfirmacion
+        isOpen={mostrarModalConfirmar}
+        onClose={() => {
+          setMostrarModalConfirmar(false);
+          setIdEspacioAEliminar(null);
+        }}
+        onConfirm={confirmarEliminarEspacio}
+        mensaje="¿Estás seguro de que deseas desactivar este espacio? Ya no estará disponible para nuevas reservas."
       />
     </div>
   );

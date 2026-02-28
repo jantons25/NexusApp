@@ -253,3 +253,60 @@
       width: 100%;
     }
   }
+
+  /* ── Estilos adicionales para el wizard de 2 pasos ── */
+
+/* Paso completado en el panel lateral */
+.step.completed span {
+  background-color: #22c55e !important; /* verde para paso completado */
+  color: #fff !important;
+}
+
+.step.completed p {
+  color: #22c55e !important;
+  opacity: 1 !important;
+}
+
+/* Resumen del paso 1 que aparece en el paso 2 */
+.resumen-paso1 {
+  background-color: #f9f9f9;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #f5c518; /* acento amarillo del sistema */
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+}
+
+.resumen-paso1 p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.resumen-paso1 strong {
+  color: #111827;
+}
+
+/* Botón "Siguiente" */
+.btn-next {
+  background-color: #f5c518;
+  color: #1a1a1a;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-next:hover {
+  background-color: #e0b015;
+}
+
+.btn-next:active {
+  transform: scale(0.98);
+}

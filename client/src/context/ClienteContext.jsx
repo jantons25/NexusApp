@@ -56,11 +56,16 @@ export function ClienteProvider({ children }) {
   const updateCliente = async (id, cliente) => {
     try {
       const res = await updateClienteRequest(id, cliente);
-      setClientes((prev) => prev.map((c) => (c._id === id ? res.data : c)));
+      // El backend devuelve { message: "...", cliente: {...} }
+      setClientes((prev) =>
+        prev.map((c) => (c._id === id ? res.data.cliente : c))
+      );
       toast.success("Cliente actualizado");
     } catch (error) {
       toast.error(
-        `Error al actualizar el cliente: ${error.response.data.error}`
+        `Error al actualizar el cliente: ${
+          error.response?.data?.error || error.message
+        }`
       );
     }
   };
@@ -76,15 +81,22 @@ export function ClienteProvider({ children }) {
     }
   };
 
+  // Reemplaza el deleteCliente actual en ClienteContext.jsx por este:
   const deleteCliente = async (id) => {
     try {
-      const res = await deleteClienteRequest(id);
-      if (res.status === 204) {
-        setClientes((prev) => prev.filter((cliente) => cliente._id !== id));
-        toast.success("Cliente eliminado");
-      }
+      await deleteClienteRequest(id);
+      // El backend hace soft delete (estado → inactivo), no elimina el registro.
+      // Actualizamos el estado local reflejando el cambio.
+      setClientes((prev) =>
+        prev.map((c) => (c._id === id ? { ...c, estado: "inactivo" } : c))
+      );
+      toast.success("Cliente desactivado correctamente");
     } catch (error) {
-      toast.error(`Error al eliminar el cliente: ${error.response.data.error}`);
+      toast.error(
+        `Error al desactivar el cliente: ${
+          error.response?.data?.error || error.message
+        }`
+      );
     }
   };
 
