@@ -39,7 +39,8 @@ const reservaSchema = new mongoose.Schema(
     usuario: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: function() { return this.tipo !== "web"; },
+      default: null,
       index: true,
     },
 

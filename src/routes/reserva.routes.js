@@ -7,6 +7,8 @@ import {
   cancelarReserva,
   reprogramarReservaController,
   agregarPagoController,
+  obtenerEspaciosPublicos,
+  obtenerDisponibilidad
 } from "../controllers/reserva.controller.js";
 import { authRequired } from "../middlewares/validateToken.js";
 const router = Router();
@@ -19,5 +21,9 @@ router.patch("/reservas/:id", authRequired, editarReserva);
 router.patch("/reservas/:id/cancelar", authRequired, cancelarReserva);
 router.patch("/reservas/:id/reprogramar", authRequired, reprogramarReservaController);
 router.patch("/reservas/:id/pago", authRequired, agregarPagoController);
+
+// Sin authRequired
+router.get("/public/espacios", obtenerEspaciosPublicos);
+router.get("/public/disponibilidad/:espacioId", obtenerDisponibilidad);
 
 export default router;

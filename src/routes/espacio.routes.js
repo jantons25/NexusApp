@@ -18,6 +18,6 @@ router.post("/espacios", authRequired, registrarEspacio);
 router.put("/espacios/:id", authRequired, actualizarEspacio);
 
 // Soft delete
-router.delete("/espacios/:id", authRequired, eliminarEspacio);
+router.delete("/espacios/:id", authRequired, eliminarEspacio); 
 
 export default router;

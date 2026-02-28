@@ -6,6 +6,8 @@ import {
   eliminarReserva,
   reprogramarReserva,
   agregarPagoAReserva,
+  getEspaciosPublicos,
+  getHorasOcupadas,
 } from "../services/reserva.service.js";
 
 // Crear una nueva reserva
@@ -145,6 +147,57 @@ export const agregarPagoController = async (req, res) => {
   } catch (error) {
     // Distinguimos entre "no encontrada" (404) y errores de validación (400)
     const status = error.message.includes("no encontrada") ? 404 : 400;
+    res.status(status).json({ mensaje: error.message });
+  }
+};
+
+export const obtenerEspaciosPublicos = async (req, res) => {
+  try {
+    const { tipo, sede } = req.query;
+
+    const filtros = {
+      ...(tipo ? { tipo } : {}),
+      ...(sede ? { sede } : {}),
+    };
+
+    const resultado = await getEspaciosPublicos(filtros);
+    res.status(200).json(resultado);
+  } catch (error) {
+    res.status(500).json({ mensaje: error.message });
+  }
+};
+
+export const obtenerDisponibilidad = async (req, res) => {
+  try {
+    const { espacioId } = req.params;
+    const { fecha } = req.query;
+
+    // ── Validaciones de entrada ──────────────────────────────────────────────
+    if (!fecha) {
+      return res
+        .status(400)
+        .json({ mensaje: 'El parámetro "fecha" es obligatorio (YYYY-MM-DD).' });
+    }
+
+    const fechaDate = new Date(fecha);
+    if (isNaN(fechaDate)) {
+      return res
+        .status(400)
+        .json({ mensaje: "Fecha inválida. Usa el formato YYYY-MM-DD." });
+    }
+
+    if (!espacioId) {
+      return res
+        .status(400)
+        .json({ mensaje: "El ID del espacio es obligatorio." });
+    }
+
+    // ── Llamada al service ───────────────────────────────────────────────────
+    const resultado = await getHorasOcupadas(espacioId, fecha);
+
+    res.status(200).json(resultado);
+  } catch (error) {
+    const status = error.message.includes("no encontrado") ? 404 : 500;
     res.status(status).json({ mensaje: error.message });
   }
 };

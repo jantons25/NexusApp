@@ -1160,3 +1160,132 @@ export const agregarPagoAReserva = async (id, data) => {
     throw new Error(`Error al agregar pago: ${error.message}`);
   }
 };
+
+export const getEspaciosPublicos = async (filtros = {}) => {
+  try {
+    // 1) Construir query base: solo espacios activos y habilitados
+    const query = {
+      estado: "disponible",
+      habilitado_reservas: true,
+    };
+
+    // 2) Filtros opcionales
+    if (filtros.tipo) query.tipo = filtros.tipo;
+
+    // sede puede ser ObjectId como string → Mongoose lo castea solo
+    if (filtros.sede) query.sede = filtros.sede;
+
+    // 3) Campos a exponer públicamente (nada de datos de gestión interna)
+    const proyeccion = [
+      "nombre",
+      "tipo",
+      "capacidad",
+      "descripcion",
+      "precio_por_hora",
+      "piso",
+      "servicios",
+      "fotos",
+      "estado",
+      "sede",
+    ].join(" ");
+
+    // 4) Consulta ordenada por nombre para consistencia en el listado
+    const espacios = await Espacio.find(query)
+      .select(proyeccion)
+      .populate("sede", "nombre direccion") // muestra nombre/dirección de sede si aplica
+      .sort({ nombre: 1 })
+      .lean();
+
+    return {
+      data: espacios,
+      total: espacios.length,
+    };
+  } catch (error) {
+    throw new Error(`Error al obtener espacios públicos: ${error.message}`);
+  }
+};
+
+export const getHorasOcupadas = async (espacioId, fecha) => {
+  try {
+    // 1) Validar que el espacio exista y esté activo
+    const espacio = await Espacio.findOne(
+      { _id: espacioId, estado: "disponible" },
+      "_id nombre"
+    ).lean();
+
+    if (!espacio) {
+      throw new Error("Espacio no encontrado o inactivo.");
+    }
+
+    // 2) Construir rango del día completo en UTC
+    //    Lima es UTC-5, así que 00:00 Lima = 05:00 UTC del mismo día
+    //    y 23:59 Lima = 04:59 UTC del día siguiente.
+    //    Usamos el rango más amplio posible (00:00 – 23:59:59 UTC)
+    //    para no perder reservas que crucen la medianoche UTC.
+    const inicioDia = new Date(`${fecha}T00:00:00.000Z`);
+    const finDia = new Date(`${fecha}T23:59:59.999Z`);
+
+    // 3) Buscar reservas activas que se solapen con ese día
+    //    Solapamiento: inicio de la reserva < fin del día  AND  fin de la reserva > inicio del día
+    const reservasDia = await Reserva.find(
+      {
+        espacio: espacioId,
+        estado: { $in: ["pendiente", "confirmada"] },
+        inicio: { $lt: finDia },
+        fin: { $gt: inicioDia },
+      },
+      "inicio fin estado" // solo los campos necesarios
+    ).lean();
+
+    // 4) Calcular horas ocupadas y franjas legibles
+    const horasSet = new Set();
+    const franjas = [];
+
+    const OFFSET_LIMA = -5; // UTC-5
+
+    reservasDia.forEach((reserva) => {
+      // Convertir a hora local de Lima sumando el offset
+      const inicioLocal = new Date(
+        reserva.inicio.getTime() + OFFSET_LIMA * 60 * 60 * 1000
+      );
+      const finLocal = new Date(
+        reserva.fin.getTime() + OFFSET_LIMA * 60 * 60 * 1000
+      );
+
+      // Hora entera de inicio (truncar minutos)
+      const horaInicio = inicioLocal.getUTCHours();
+
+      // Hora entera de fin — si termina justo en punto (00 min) la hora no se bloquea
+      const minFin = finLocal.getUTCMinutes();
+      const horaFin =
+        minFin === 0
+          ? finLocal.getUTCHours() - 1 // 11:00 exacto → bloquea hasta la hora 10
+          : finLocal.getUTCHours();     // 11:30 → bloquea la hora 11 también
+
+      // Marcar todas las horas enteras dentro del rango
+      for (let h = horaInicio; h <= horaFin; h++) {
+        horasSet.add(h);
+      }
+
+      // Franja legible para el tooltip del timeline
+      const pad = (n) => String(n).padStart(2, "0");
+      franjas.push({
+        inicio: `${pad(horaInicio)}:${pad(inicioLocal.getUTCMinutes())}`,
+        fin: `${pad(finLocal.getUTCHours())}:${pad(minFin)}`,
+        estado: reserva.estado,
+      });
+    });
+
+    // 5) Ordenar horas de menor a mayor para facilitar el render en el frontend
+    const horasOcupadas = Array.from(horasSet).sort((a, b) => a - b);
+
+    return {
+      espacioId,
+      fecha,
+      horasOcupadas,
+      franjas,
+    };
+  } catch (error) {
+    throw new Error(`Error al obtener disponibilidad: ${error.message}`);
+  }
+};

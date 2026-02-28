@@ -27,6 +27,7 @@ import { DetalleReservaProvider } from "./context/DetalleReservaContext.jsx";
 import { EspacioProvider } from "./context/EspacioContext.jsx";
 import ReservasPage from "./pages/ReservasPage.jsx";
 import Dashboard from "./pages/Dashboard";
+import CoworkingLanding from "./pages/CoworkingLanding.jsx";
 
 function App() {
   return (
@@ -52,6 +53,10 @@ function App() {
                                   <Route
                                     path="/register"
                                     element={<RegisterPage />}
+                                  />
+                                  <Route
+                                    path="/reservar"
+                                    element={<CoworkingLanding />}
                                   />
                                   <Route element={<ProtectedRoute />}>
                                     <Route
