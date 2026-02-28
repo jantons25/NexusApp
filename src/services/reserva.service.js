@@ -1,6 +1,7 @@
 import Reserva from "../models/reserva.model.js";
 import Cliente from "../models/cliente.model.js";
 import DetalleReserva from "../models/detalle_reserva.js";
+import Espacio from "../models/espacio.model.js";
 import { Types } from "mongoose";
 
 export const crearReserva = async (data) => {
@@ -462,8 +463,31 @@ export const actualizarReserva = async (id, data) => {
   }
 };
 
+// ✅ NUEVO: Finalizar automáticamente reservas cuyo tiempo ya venció
+export const finalizarReservasVencidas = async () => {
+  try {
+    const ahora = new Date();
+
+    const resultado = await Reserva.updateMany(
+      {
+        fin: { $lt: ahora },
+        estado: { $in: ["pendiente", "confirmada"] },
+      },
+      {
+        $set: { estado: "finalizada" },
+      }
+    );
+
+    return { finalizadas: resultado.modifiedCount };
+  } catch (error) {
+    throw new Error(`Error al finalizar reservas vencidas: ${error.message}`);
+  }
+};
+
 export const getReservas = async (opts = {}) => {
   try {
+    // ✅ NUEVO: Sincronizar estados antes de responder
+    await finalizarReservasVencidas();
     const {
       filtros = {},
       page = 1,
@@ -605,42 +629,534 @@ export const getReservaById = async (id) => {
   }
 };
 
+//OTROS SERVICIOS
+
+const ESTADOS_NO_REPROGRAMABLES = Object.freeze([
+  "cancelada",
+  "finalizada",
+  "rechazada",
+]);
+
+const _parsearFecha = (valor, nombreCampo) => {
+  if (!valor && valor !== 0) {
+    throw new Error(`El campo '${nombreCampo}' es obligatorio.`);
+  }
+  const fecha = new Date(valor);
+  if (isNaN(fecha.getTime())) {
+    throw new Error(
+      `'${nombreCampo}' no es una fecha válida. ` +
+        `Usa formato ISO 8601, ej: "2025-08-20T10:00:00.000Z". ` +
+        `Valor recibido: "${valor}".`
+    );
+  }
+  return fecha;
+};
+
+const _formatearParaMensaje = (fecha, timezone = "America/Lima") =>
+  new Date(fecha).toLocaleString("es-PE", {
+    timeZone: timezone,
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+
+const _poblarReserva = (query) =>
+  query
+    .populate("cliente", "nombre correo telefono dni estado")
+    .populate(
+      "espacio",
+      "nombre tipo capacidad descripcion precio_por_hora sede piso habilitado_reservas estado"
+    )
+    .populate("usuario", "nombre correo");
+
+const _calcularImporte = (precioPorHora, inicio, fin) => {
+  const horas = (fin.getTime() - inicio.getTime()) / (1000 * 60 * 60);
+  return parseFloat((precioPorHora * horas).toFixed(2));
+};
+
+export const reprogramarReserva = async (
+  reservaId,
+  nuevoInicio,
+  nuevoFin,
+  usuarioId = null
+) => {
+  try {
+    // ─── 1) Parsear y validar fechas ─────────────────────────────────────
+    const inicio = _parsearFecha(nuevoInicio, "nuevoInicio");
+    const fin = _parsearFecha(nuevoFin, "nuevoFin");
+
+    if (fin <= inicio) {
+      throw new Error(
+        `'nuevoFin' debe ser mayor que 'nuevoInicio'. ` +
+          `Recibido → inicio: "${inicio.toISOString()}", fin: "${fin.toISOString()}".`
+      );
+    }
+
+    // ─── 2) Buscar la reserva ─────────────────────────────────────────────
+    const reserva = await Reserva.findById(reservaId).select(
+      "_id estado espacio inicio fin timezone detalle"
+    );
+
+    if (!reserva) throw new Error(`Reserva no encontrada. Id: "${reservaId}".`);
+
+    // ─── 3) Verificar estado ──────────────────────────────────────────────
+    if (ESTADOS_NO_REPROGRAMABLES.includes(reserva.estado)) {
+      throw new Error(
+        `No se puede reprogramar una reserva en estado "${reserva.estado}". ` +
+          `Solo se permiten los estados: pendiente, confirmada.`
+      );
+    }
+
+    // ─── 4) Idempotencia ──────────────────────────────────────────────────
+    const mismoInicio = reserva.inicio.getTime() === inicio.getTime();
+    const mismoFin = reserva.fin.getTime() === fin.getTime();
+
+    if (mismoInicio && mismoFin) {
+      const reservaSinCambios = await _poblarReserva(
+        Reserva.findById(reservaId)
+      ).lean();
+      return {
+        ok: true,
+        cambio: false,
+        mensaje:
+          "Las fechas indicadas son idénticas a las actuales. No se realizaron cambios.",
+        reserva: reservaSinCambios,
+        nuevo_importe: reserva.detalle?.importe_total ?? 0,
+      };
+    }
+
+    // ─── 5) Anti-solapamiento ─────────────────────────────────────────────
+    const conflicto = await Reserva.findOne({
+      _id: { $ne: reservaId },
+      espacio: reserva.espacio,
+      estado: { $in: ["pendiente", "confirmada"] },
+      inicio: { $lt: fin },
+      fin: { $gt: inicio },
+    }).select("_id inicio fin estado");
+
+    if (conflicto) {
+      const tz = reserva.timezone || "America/Lima";
+      throw new Error(
+        `El espacio ya tiene una reserva (${conflicto.estado}) ` +
+          `entre ${_formatearParaMensaje(conflicto.inicio, tz)} y ` +
+          `${_formatearParaMensaje(conflicto.fin, tz)} ` +
+          `que se solapa con el nuevo horario. Elige un horario diferente.`
+      );
+    }
+
+    // ─── 6) Recalcular importe basado en precio_por_hora del espacio ──────
+    // Traemos el espacio para obtener precio_por_hora (fuente de verdad).
+    // Si el espacio no tiene precio_por_hora definido, usamos el importe
+    // actual de la reserva como fallback seguro.
+    const espacio = await Espacio.findById(reserva.espacio).select(
+      "precio_por_hora tarifas"
+    );
+
+    let nuevoImporte = reserva.detalle?.importe_total ?? 0; // fallback
+
+    if (espacio) {
+      // Prioridad 1: precio_por_hora (campo principal, igual que el Wizard)
+      // Prioridad 2: primera tarifa de tipo "hora" activa (si precio_por_hora es 0)
+      const precioPorHora =
+        espacio.precio_por_hora ||
+        espacio.tarifas?.find((t) => t.tipo === "hora" && t.activo)?.precio ||
+        0;
+
+      if (precioPorHora > 0) {
+        nuevoImporte = _calcularImporte(precioPorHora, inicio, fin);
+      }
+    }
+
+    // ─── 7) Actualizar Reserva: fechas + importe_total embebido ──────────
+    const reservaActualizada = await _poblarReserva(
+      Reserva.findByIdAndUpdate(
+        reservaId,
+        {
+          $set: {
+            inicio,
+            fin,
+            "detalle.importe_total": nuevoImporte,
+          },
+        },
+        { new: true, runValidators: true }
+      )
+    ).lean();
+
+    if (!reservaActualizada) {
+      throw new Error(
+        "No se pudo completar la reprogramación: la reserva fue eliminada " +
+          "por otra operación simultánea. Vuelve a intentarlo."
+      );
+    }
+
+    // ─── 8) Sincronizar DetalleReserva externo (si existe) ───────────────
+    // El detalle externo es la fuente que usa la lista. Lo actualizamos
+    // para mantener consistencia entre ambos documentos.
+    await DetalleReserva.updateOne(
+      { reserva: reservaId },
+      { $set: { importe_total: nuevoImporte } }
+    );
+
+    // ─── 9) Retornar ─────────────────────────────────────────────────────
+    return {
+      ok: true,
+      cambio: true,
+      mensaje: "Fechas y precio de la reserva reprogramados correctamente.",
+      reserva: reservaActualizada,
+      nuevo_importe: nuevoImporte,
+    };
+  } catch (error) {
+    throw new Error(`Error al reprogramar reserva: ${error.message}`);
+  }
+};
+
+const calcularDiasAnticipacion = (fechaInicio) => {
+  const hoy = new Date();
+
+  // Normalizar ambas fechas a medianoche para comparar solo días calendario
+  const hoyNorm = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  const inicioNorm = new Date(
+    fechaInicio.getFullYear(),
+    fechaInicio.getMonth(),
+    fechaInicio.getDate()
+  );
+
+  const diffMs = inicioNorm - hoyNorm;
+  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  return diffDias; // puede ser negativo si ya pasó la fecha
+};
+
+const calcularPoliticaDevolucion = (
+  diasAnticipacion,
+  montoTotalPagado,
+  importeTotal
+) => {
+  // Caso: mismo día o reserva ya iniciada
+  if (diasAnticipacion <= 0) {
+    return {
+      porcentaje: 0,
+      motivo:
+        "Cancelación el mismo día o posterior al inicio. No corresponde devolución.",
+    };
+  }
+
+  // Caso: 2 o más días antes → devolución total sin penalidad
+  if (diasAnticipacion >= 2) {
+    return {
+      porcentaje: 100,
+      motivo: `Cancelación con ${diasAnticipacion} días de anticipación. Devolución total.`,
+    };
+  }
+
+  // Caso: exactamente 1 día antes → depende de si el pago fue completo o parcial
+  const pagoEsCompleto = importeTotal > 0 && montoTotalPagado >= importeTotal;
+
+  if (pagoEsCompleto) {
+    return {
+      porcentaje: 25,
+      motivo:
+        "Cancelación con 1 día de anticipación. Pago completo: se retiene el 75%.",
+    };
+  } else {
+    return {
+      porcentaje: 50,
+      motivo:
+        "Cancelación con 1 día de anticipación. Pago parcial: se retiene el 50%.",
+    };
+  }
+};
+
 export const eliminarReserva = async (id, usuarioId, motivo = "") => {
   try {
     // 1) Buscar reserva
-    const reserva = await Reserva.findById(id, null);
+    const reserva = await Reserva.findById(id);
     if (!reserva) throw new Error("Reserva no encontrada.");
 
     // 2) Validar estado actual
-    if (reserva.estado === "cancelada") {
+    if (reserva.estado === "cancelada")
       throw new Error("La reserva ya está cancelada.");
-    }
 
-    if (reserva.estado === "finalizada") {
+    if (reserva.estado === "finalizada")
       throw new Error("No se puede cancelar una reserva finalizada.");
-    }
 
-    // 3) Cambiar estado (soft delete)
+    // 3) Calcular anticipación y política de devolución
+    const diasAnticipacion = calcularDiasAnticipacion(reserva.inicio);
+    const importeTotal = reserva.detalle?.importe_total || 0;
+
+    // Sumar todos los pagos embebidos
+    const pagosEmbebidos = reserva.detalle?.pagos || [];
+    const montoTotalPagado = pagosEmbebidos.reduce(
+      (sum, p) => sum + (p.monto_pago || 0),
+      0
+    );
+
+    const politica = calcularPoliticaDevolucion(
+      diasAnticipacion,
+      montoTotalPagado,
+      importeTotal
+    );
+
+    // 4) Calcular monto a devolver
+    const montoDevolucion =
+      montoTotalPagado > 0
+        ? parseFloat(
+            ((montoTotalPagado * politica.porcentaje) / 100).toFixed(2)
+          )
+        : 0;
+
+    const montoRetenido = parseFloat(
+      (montoTotalPagado - montoDevolucion).toFixed(2)
+    );
+
+    // 5) Soft delete: cambiar estado de la reserva
     reserva.estado = "cancelada";
     reserva.cancelado_por = usuarioId || null;
     reserva.fecha_cancelacion = new Date();
     reserva.motivo_cancelacion = motivo?.trim() || "";
 
     await reserva.save();
-    const detalle = await DetalleReserva.findOne({ reserva: id }, null);
+
+    // 6) Actualizar DetalleReserva externo (si existe)
+    const detalle = await DetalleReserva.findOne({ reserva: id });
 
     if (detalle) {
-      if ((detalle.total_pagado || 0) <= 0) {
+      // Si no hubo ningún pago, simplemente marcar como cancelado
+      if (montoTotalPagado <= 0) {
         detalle.estado_pago = "cancelado";
-        await detalle.save();
+      } else {
+        // Hay pagos: registrar la devolución en observaciones y marcar estado
+        const notaCancelacion = [
+          `[CANCELACIÓN ${new Date().toLocaleDateString("es-PE")}]`,
+          `Días de anticipación: ${diasAnticipacion}`,
+          politica.motivo,
+          `Total pagado: S/${montoTotalPagado.toFixed(2)}`,
+          `Monto a devolver: S/${montoDevolucion.toFixed(2)} (${
+            politica.porcentaje
+          }%)`,
+          `Monto retenido: S/${montoRetenido.toFixed(2)}`,
+        ].join(" | ");
+
+        detalle.observaciones_generales = detalle.observaciones_generales
+          ? `${detalle.observaciones_generales}\n${notaCancelacion}`
+          : notaCancelacion;
+
+        // Estado de pago refleja si hay algo pendiente de devolver
+        detalle.estado_pago =
+          montoDevolucion > 0 ? "devolucion_pendiente" : "cancelado";
       }
+
+      await detalle.save();
     }
 
+    // 7) Retornar resultado con el resumen de la política aplicada
     return {
       mensaje: "Reserva cancelada correctamente.",
       reserva,
+      devolucion: {
+        dias_anticipacion: diasAnticipacion,
+        porcentaje_devolucion: politica.porcentaje,
+        monto_total_pagado: montoTotalPagado,
+        monto_a_devolver: montoDevolucion,
+        monto_retenido: montoRetenido,
+        motivo_politica: politica.motivo,
+        requiere_devolucion: montoDevolucion > 0,
+      },
     };
   } catch (error) {
     throw new Error(`Error al cancelar la reserva: ${error.message}`);
+  }
+};
+
+export const agregarPagoAReserva = async (id, data) => {
+  try {
+    // ─────────────────────────────────────────
+    // PASO 1: Buscar la reserva en la base de datos
+    // ─────────────────────────────────────────
+    // Buscamos la reserva por su ID. Si no existe, lanzamos un error
+    // inmediatamente para no continuar con el proceso.
+    const reserva = await Reserva.findById(id);
+    if (!reserva) throw new Error("Reserva no encontrada.");
+
+    // ─────────────────────────────────────────
+    // PASO 2: Validar que el estado de la reserva permita pagos
+    // ─────────────────────────────────────────
+    // No tiene sentido agregar un pago a una reserva cancelada o finalizada.
+    // Si el estado es alguno de estos dos, bloqueamos la operación.
+    const estadosPermitidos = ["pendiente", "confirmada"];
+    if (!estadosPermitidos.includes(reserva.estado)) {
+      throw new Error(
+        `No se puede agregar un pago a una reserva en estado "${reserva.estado}".`
+      );
+    }
+
+    // ─────────────────────────────────────────
+    // PASO 3: Extraer y validar el monto del nuevo pago
+    // ─────────────────────────────────────────
+    // Convertimos el monto a número (por si llega como string desde el body).
+    // Number("150") → 150  |  Number("abc") → NaN
+    const monto = Number(data.monto_pago);
+
+    // isNaN comprueba si el resultado NO es un número válido.
+    if (isNaN(monto)) {
+      throw new Error("El monto del pago debe ser un número válido.");
+    }
+
+    // El monto debe ser estrictamente mayor a cero.
+    // No aceptamos pagos de S/ 0.00 ni negativos.
+    if (monto <= 0) {
+      throw new Error("El monto del pago debe ser mayor a cero.");
+    }
+
+    // ─────────────────────────────────────────
+    // PASO 4: Calcular cuánto se ha pagado hasta ahora (total acumulado)
+    // ─────────────────────────────────────────
+    // Usamos reduce() para sumar todos los montos del array de pagos.
+    // Si el array está vacío, reduce devuelve el valor inicial: 0.
+    //
+    // Ejemplo: pagos = [{monto_pago: 100}, {monto_pago: 50}]
+    //          totalPagado = 150
+    const totalPagado = reserva.detalle.pagos.reduce(
+      (acumulado, pago) => acumulado + (pago.monto_pago || 0),
+      0
+    );
+
+    const importeTotal = reserva.detalle.importe_total || 0;
+
+    // ─────────────────────────────────────────
+    // PASO 5: Verificar que no se supere el importe total
+    // ─────────────────────────────────────────
+    // Si ya se pagó todo o más de lo que se debía, no permitimos más pagos.
+    if (totalPagado >= importeTotal) {
+      throw new Error(
+        `La reserva ya está completamente pagada. Importe total: S/ ${importeTotal.toFixed(
+          2
+        )}.`
+      );
+    }
+
+    // Si el nuevo pago hace que se supere el importe total, también lo bloqueamos.
+    // Ejemplo: importe_total=500, totalPagado=400, nuevo pago=150 → 400+150=550 > 500 ❌
+    const saldoPendiente = importeTotal - totalPagado;
+    if (monto > saldoPendiente) {
+      throw new Error(
+        `El monto del pago (S/ ${monto.toFixed(
+          2
+        )}) supera el saldo pendiente (S/ ${saldoPendiente.toFixed(2)}).`
+      );
+    }
+
+    // ─────────────────────────────────────────
+    // PASO 6: Validar el método de pago (si viene)
+    // ─────────────────────────────────────────
+    // Definimos los métodos de pago que acepta el sistema.
+    // Si el usuario manda uno que no está en esta lista, lo rechazamos.
+    const metodosPermitidos = [
+      "efectivo",
+      "transferencia",
+      "tarjeta",
+      "yape",
+      "plin",
+      "otro",
+    ];
+    const metodoPago = data.metodo_pago?.trim().toLowerCase() || "efectivo";
+
+    if (!metodosPermitidos.includes(metodoPago)) {
+      throw new Error(
+        `Método de pago inválido. Los métodos permitidos son: ${metodosPermitidos.join(
+          ", "
+        )}.`
+      );
+    }
+
+    // ─────────────────────────────────────────
+    // PASO 7: Construir el objeto del nuevo pago
+    // ─────────────────────────────────────────
+    // Armamos el objeto con la misma estructura que define el pagoSchema
+    // en el modelo. Usamos valores por defecto si no vienen en data.
+    const nuevoPago = {
+      monto_pago: monto,
+      metodo_pago: metodoPago,
+      observacion_pago: data.observacion_pago?.trim() || "",
+      registrado_por: data.usuario || null,
+      fecha_pago: data.fecha_pago ? new Date(data.fecha_pago) : new Date(),
+    };
+
+    // ─────────────────────────────────────────
+    // PASO 8: Persistir el nuevo pago en la base de datos
+    // ─────────────────────────────────────────
+    // Usamos $push para agregar el nuevo pago al array detalle.pagos
+    // sin tener que traer, modificar y guardar el documento completo.
+    // Es más eficiente y seguro ante escrituras concurrentes.
+    await Reserva.updateOne(
+      { _id: id },
+      { $push: { "detalle.pagos": nuevoPago } }
+    );
+
+    // ─────────────────────────────────────────
+    // PASO 9: Sincronizar también en DetalleReserva (modelo externo)
+    // ─────────────────────────────────────────
+    // Tu sistema mantiene dos fuentes de pagos en paralelo:
+    // el detalle embebido dentro de Reserva y el modelo DetalleReserva separado.
+    // Actualizamos ambos para mantenerlos consistentes.
+    const detalleExterno = await DetalleReserva.findOne({ reserva: id });
+    if (detalleExterno) {
+      await DetalleReserva.updateOne(
+        { _id: detalleExterno._id },
+        { $push: { pagos: nuevoPago } }
+      );
+    }
+
+    // ─────────────────────────────────────────
+    // PASO 10: Releer la reserva actualizada con datos relacionados
+    // ─────────────────────────────────────────
+    // Después de guardar, traemos la reserva completa con populate
+    // para devolver al frontend los objetos completos (cliente, espacio, etc.)
+    // en lugar de solo los IDs de MongoDB.
+    const reservaActualizada = await Reserva.findById(id)
+      .populate("cliente", "nombre correo telefono dni estado")
+      .populate(
+        "espacio",
+        "nombre tipo capacidad descripcion precio_por_hora sede piso habilitado_reservas estado"
+      )
+      .populate("usuario", "nombre correo")
+      .lean();
+
+    // ─────────────────────────────────────────
+    // PASO 11: Calcular los valores financieros finales para el response
+    // ─────────────────────────────────────────
+    // Recalculamos con los pagos ya actualizados (incluyendo el nuevo).
+    const nuevoTotalPagado = reservaActualizada.detalle.pagos.reduce(
+      (acc, p) => acc + (p.monto_pago || 0),
+      0
+    );
+    const nuevoSaldo = importeTotal - nuevoTotalPagado;
+
+    // Determinamos el estado_pago según los montos:
+    // - "completo"  → ya se pagó todo el importe
+    // - "parcial"   → se pagó algo pero falta
+    // - "pendiente" → no se ha pagado nada
+    const estadoPago =
+      nuevoTotalPagado >= importeTotal
+        ? "completo"
+        : nuevoTotalPagado > 0
+        ? "parcial"
+        : "pendiente";
+
+    // ─────────────────────────────────────────
+    // PASO 12: Retornar la respuesta estructurada
+    // ─────────────────────────────────────────
+    return {
+      mensaje: "Pago agregado correctamente.",
+      reserva: reservaActualizada,
+      resumen_pago: {
+        importe_total: importeTotal,
+        total_pagado: nuevoTotalPagado,
+        saldo_pendiente: nuevoSaldo,
+        estado_pago: estadoPago,
+        cantidad_pagos: reservaActualizada.detalle.pagos.length,
+      },
+    };
+  } catch (error) {
+    throw new Error(`Error al agregar pago: ${error.message}`);
   }
 };

@@ -1,16 +1,30 @@
 import { useState } from "react";
 import { useReserva } from "../context/ReservaContext.jsx";
 import ModalBigVarios from "./ModalBigVarios.jsx";
-import ModalConfirmacion from "./ModalConfirmacion.jsx";
+import ModalCancelarReserva from "./ModalCancelarReserva.jsx";
 import ReservaFormPage from "./WizardComponent.jsx";
+import ReprogramarReservaModal from "./ReprogramarReservaModal.jsx";
+import ModalAgregarPago from "./ModalAgregarPago.jsx";
 
 function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
   reservas = reservas.data;
   const { cancelReserva } = useReserva();
-  const [idReserva, setIdReserva] = useState(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReserva, setSelectedReserva] = useState(null);
-  const [mostrarModal, setMostrarModal] = useState(false);
+
+  // ── Modal reprogramar ──────────────────────────────────────────────────────
+  const [reservaAReprogramar, setReservaAReprogramar] = useState(null);
+  const [isReprogramarOpen, setIsReprogramarOpen] = useState(false);
+
+  // ── Modal cancelar ─────────────────────────────────────────────────────────
+  const [reservaACancelar, setReservaACancelar] = useState(null);
+  const [isCancelarOpen, setIsCancelarOpen] = useState(false);
+  const [isCancelando, setIsCancelando] = useState(false);
+
+  // ── Modal agregar pago ─────────────────────────────────────────────────────
+  const [reservaParaPago, setReservaParaPago] = useState(null);
+  const [isPagoOpen, setIsPagoOpen] = useState(false);
 
   const [filtros, setFiltros] = useState({
     fecha: "",
@@ -29,23 +43,28 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
     finalizada: "bg-blue-500",
   };
 
-  const confirmarEliminarReserva = async () => {
+  // Estados que NO pueden cancelarse ni reprogramarse
+  const ESTADOS_NO_REPROGRAMABLES = ["cancelada", "finalizada", "rechazada"];
+  const ESTADOS_NO_CANCELABLES = ["cancelada", "finalizada"];
+
+  // ── Confirmar cancelación ──────────────────────────────────────────────────
+  const confirmarCancelarReserva = async (motivo) => {
+    if (!reservaACancelar) return;
+    setIsCancelando(true);
     try {
-      await cancelReserva(idReserva);
+      await cancelReserva(reservaACancelar.reserva._id, motivo);
       refreshPagina();
+      setIsCancelarOpen(false);
+      setReservaACancelar(null);
     } catch (error) {
-      console.error("Error eliminando reserva:", error);
+      console.error("Error cancelando reserva:", error);
     } finally {
-      setMostrarModal(false);
-      setIdReserva(null);
+      setIsCancelando(false);
     }
   };
 
   const handleFiltroChange = (campo, valor) => {
-    setFiltros((prev) => ({
-      ...prev,
-      [campo]: valor,
-    }));
+    setFiltros((prev) => ({ ...prev, [campo]: valor }));
   };
 
   const limpiarFiltros = () => {
@@ -63,45 +82,30 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
     return reservas.filter((reserva) => {
       const fechaReserva = new Date(reserva.reserva.inicio);
 
-      // Filtro por fecha exacta
       if (filtros.fecha) {
         const fechaSeleccionada = new Date(filtros.fecha);
         fechaSeleccionada.setHours(0, 0, 0, 0);
         fechaReserva.setHours(0, 0, 0, 0);
-
-        if (fechaReserva.getTime() !== fechaSeleccionada.getTime()) {
+        if (fechaReserva.getTime() !== fechaSeleccionada.getTime())
           return false;
-        }
       }
 
-      // Filtro por rango de fechas
       if (filtros.fechaInicio && filtros.fechaFin) {
         const fechaInicio = new Date(filtros.fechaInicio);
         const fechaFin = new Date(filtros.fechaFin);
         fechaInicio.setHours(0, 0, 0, 0);
         fechaFin.setHours(23, 59, 59, 999);
-
         const fechaReservaReset = new Date(reserva.reserva.inicio);
-
-        if (fechaReservaReset < fechaInicio || fechaReservaReset > fechaFin) {
+        if (fechaReservaReset < fechaInicio || fechaReservaReset > fechaFin)
           return false;
-        }
       }
 
-      // Filtro por espacio
-      if (filtros.espacio && reserva.reserva.espacio._id !== filtros.espacio) {
+      if (filtros.espacio && reserva.reserva.espacio._id !== filtros.espacio)
         return false;
-      }
-
-      // Filtro por cliente
-      if (filtros.cliente && reserva.reserva.cliente._id !== filtros.cliente) {
+      if (filtros.cliente && reserva.reserva.cliente._id !== filtros.cliente)
         return false;
-      }
-
-      // Filtro por estado
-      if (filtros.estado && reserva.reserva.estado !== filtros.estado) {
+      if (filtros.estado && reserva.reserva.estado !== filtros.estado)
         return false;
-      }
 
       return true;
     });
@@ -109,14 +113,10 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
 
   const reservasParaMostrar = reservasFiltradas();
 
-  // ✅ SOLO ESTE RETURN ANTICIPADO DEBE EXISTIR
   if (!reservas || reservas.length === 0) {
     return <h1 className="text-center text-gray-600">No hay reservas</h1>;
   }
 
-  // ❌ ELIMINAR EL SEGUNDO RETURN ANTICIPADO QUE ESTABA AQUÍ
-
-  // ✅ ÚNICO RETURN PRINCIPAL - SIEMPRE SE EJECUTA
   return (
     <div className="bg-white p-4 w-full descripcion__container">
       <h1 className="text-2xl bold font-medium">Lista de Reservas</h1>
@@ -126,7 +126,7 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
         día.
       </p>
 
-      {/* PANEL DE FILTROS - SIEMPRE VISIBLE */}
+      {/* PANEL DE FILTROS */}
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-700">
@@ -141,7 +141,6 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {/* Filtro por fecha exacta */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Fecha exacta
@@ -160,7 +159,6 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
             />
           </div>
 
-          {/* Filtro por rango - Inicio */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Desde
@@ -170,15 +168,12 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
               value={filtros.fechaInicio}
               onChange={(e) => {
                 handleFiltroChange("fechaInicio", e.target.value);
-                if (e.target.value) {
-                  handleFiltroChange("fecha", "");
-                }
+                if (e.target.value) handleFiltroChange("fecha", "");
               }}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Filtro por rango - Fin */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Hasta
@@ -188,15 +183,12 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
               value={filtros.fechaFin}
               onChange={(e) => {
                 handleFiltroChange("fechaFin", e.target.value);
-                if (e.target.value) {
-                  handleFiltroChange("fecha", "");
-                }
+                if (e.target.value) handleFiltroChange("fecha", "");
               }}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Filtro por espacio */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Espacio
@@ -207,16 +199,14 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Todos los espacios</option>
-              {espacios &&
-                espacios.map((espacio) => (
-                  <option key={espacio._id} value={espacio._id}>
-                    {espacio.nombre}
-                  </option>
-                ))}
+              {espacios?.map((espacio) => (
+                <option key={espacio._id} value={espacio._id}>
+                  {espacio.nombre}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* Filtro por cliente */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Cliente
@@ -227,16 +217,14 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Todos los clientes</option>
-              {clientes &&
-                clientes.map((cliente) => (
-                  <option key={cliente._id} value={cliente._id}>
-                    {cliente.nombre}
-                  </option>
-                ))}
+              {clientes?.map((cliente) => (
+                <option key={cliente._id} value={cliente._id}>
+                  {cliente.nombre}
+                </option>
+              ))}
             </select>
           </div>
 
-          {/* Filtro por estado */}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">
               Estado
@@ -256,7 +244,6 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
           </div>
         </div>
 
-        {/* Contador de resultados */}
         <div className="mt-3 text-xs text-gray-600">
           Mostrando{" "}
           <span className="font-semibold text-blue-600">
@@ -266,7 +253,7 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
         </div>
       </div>
 
-      {/* CONDICIONAL SOLO PARA CONTENIDO (tabla o mensaje) */}
+      {/* TABLA O MENSAJE VACÍO */}
       {reservasParaMostrar.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
           <svg
@@ -330,6 +317,9 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
                 <th className="px-6 py-2 text-center bg-emerald-200">
                   Pago Inicial
                 </th>
+                <th className="px-6 py-2 text-center bg-blue-100">
+                  Total Pagado
+                </th>
                 <th className="px-6 py-2 text-center bg-emerald-200">
                   Importe Total
                 </th>
@@ -338,131 +328,230 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
             </thead>
 
             <tbody>
-              {reservasParaMostrar.map((reserva) => (
-                <tr
-                  key={reserva.reserva._id}
-                  className="border-b hover:bg-gray-50 transition duration-150"
-                >
-                  <td className="px-6 py-4 font-medium text-center">
-                    {new Date(reserva.reserva.createdAt).toLocaleDateString(
-                      "es-PE",
-                      {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        timeZone: "America/Lima",
-                      }
-                    )}{" "}
-                    {new Date(reserva.reserva.createdAt).toLocaleTimeString(
-                      "es-PE",
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                        timeZone: "America/Lima",
-                      }
-                    )}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-center">
-                    {new Date(reserva.reserva.inicio).toLocaleDateString(
-                      "es-PE",
-                      {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        timeZone: "America/Lima",
-                      }
-                    )}{" "}
-                    {new Date(reserva.reserva.inicio).toLocaleTimeString(
-                      "es-PE",
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                        timeZone: "America/Lima",
-                      }
-                    )}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-center">
-                    {new Date(reserva.reserva.fin).toLocaleDateString("es-PE", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      timeZone: "America/Lima",
-                    })}{" "}
-                    {new Date(reserva.reserva.fin).toLocaleTimeString("es-PE", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                      timeZone: "America/Lima",
-                    })}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-center">
-                    {reserva.reserva.espacio.nombre.charAt(0).toUpperCase() +
-                      reserva.reserva.espacio.nombre.slice(1)}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-center">
-                    {reserva.reserva.cliente.nombre.charAt(0).toUpperCase() +
-                      reserva.reserva.cliente.nombre.slice(1)}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${
-                          estadoColors[reserva.reserva.estado] || "bg-gray-500"
-                        }`}
-                      ></div>
-                      <span className="font-medium">
-                        {reserva.reserva.estado?.charAt(0).toUpperCase() +
-                          reserva.reserva.estado?.slice(1)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-center">
-                    S/{" "}
-                    {reserva.detalle?.pagos && reserva.detalle.pagos.length > 0
-                      ? parseFloat(reserva.detalle.pagos[0].monto_pago).toFixed(
-                          2
-                        )
-                      : reserva.reserva.detalle?.pagos?.length > 0
-                      ? parseFloat(
-                          reserva.reserva.detalle.pagos[0].monto_pago
-                        ).toFixed(2)
-                      : "0.00"}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-center">
-                    S/
-                    {parseFloat(reserva.detalle.importe_total).toFixed(
-                      2
-                    )}
-                  </td>
-                  <td className="px-6 py-4 flex gap-2 justify-center">
-                    <button
-                      onClick={() => {
-                        setSelectedReserva(reserva);
-                        setIsModalOpen(true);
-                      }}
-                      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-xs cursor-pointer"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIdReserva(reserva.reserva._id);
-                        setMostrarModal(true);
-                      }}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs cursor-pointer"
-                    >
-                      Eliminar
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {reservasParaMostrar.map((reserva) => {
+                const noCancelable = ESTADOS_NO_CANCELABLES.includes(
+                  reserva.reserva.estado,
+                );
+                const noReprogramable = ESTADOS_NO_REPROGRAMABLES.includes(
+                  reserva.reserva.estado,
+                );
+
+                return (
+                  <tr
+                    key={reserva.reserva._id}
+                    className="border-b hover:bg-gray-50 transition duration-150"
+                  >
+                    {/* F. Registro */}
+                    <td className="px-6 py-4 font-medium text-center">
+                      {new Date(reserva.reserva.createdAt).toLocaleDateString(
+                        "es-PE",
+                        {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          timeZone: "America/Lima",
+                        },
+                      )}{" "}
+                      {new Date(reserva.reserva.createdAt).toLocaleTimeString(
+                        "es-PE",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                          timeZone: "America/Lima",
+                        },
+                      )}
+                    </td>
+
+                    {/* F. Inicio */}
+                    <td className="px-6 py-4 font-medium text-center">
+                      {new Date(reserva.reserva.inicio).toLocaleDateString(
+                        "es-PE",
+                        {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          timeZone: "America/Lima",
+                        },
+                      )}{" "}
+                      {new Date(reserva.reserva.inicio).toLocaleTimeString(
+                        "es-PE",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                          timeZone: "America/Lima",
+                        },
+                      )}
+                    </td>
+
+                    {/* F. Fin */}
+                    <td className="px-6 py-4 font-medium text-center">
+                      {new Date(reserva.reserva.fin).toLocaleDateString(
+                        "es-PE",
+                        {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          timeZone: "America/Lima",
+                        },
+                      )}{" "}
+                      {new Date(reserva.reserva.fin).toLocaleTimeString(
+                        "es-PE",
+                        {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                          timeZone: "America/Lima",
+                        },
+                      )}
+                    </td>
+
+                    {/* Espacio */}
+                    <td className="px-6 py-4 font-medium text-center">
+                      {reserva.reserva.espacio.nombre.charAt(0).toUpperCase() +
+                        reserva.reserva.espacio.nombre.slice(1)}
+                    </td>
+
+                    {/* Cliente */}
+                    <td className="px-6 py-4 font-medium text-center">
+                      {reserva.reserva.cliente.nombre.charAt(0).toUpperCase() +
+                        reserva.reserva.cliente.nombre.slice(1)}
+                    </td>
+
+                    {/* Estado */}
+                    <td className="px-6 py-4 font-medium text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div
+                          className={`w-3 h-3 rounded-full ${estadoColors[reserva.reserva.estado] || "bg-gray-500"}`}
+                        />
+                        <span className="font-medium">
+                          {reserva.reserva.estado?.charAt(0).toUpperCase() +
+                            reserva.reserva.estado?.slice(1)}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Pago Inicial */}
+                    <td className="px-6 py-4 font-medium text-center">
+                      S/{" "}
+                      {reserva.detalle?.pagos &&
+                      reserva.detalle.pagos.length > 0
+                        ? parseFloat(
+                            reserva.detalle.pagos[0].monto_pago,
+                          ).toFixed(2)
+                        : reserva.reserva.detalle?.pagos?.length > 0
+                          ? parseFloat(
+                              reserva.reserva.detalle.pagos[0].monto_pago,
+                            ).toFixed(2)
+                          : "0.00"}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-center">
+                      {(() => {
+                        // Sumamos todos los pagos del array con reduce()
+                        // igual que hace el servicio en el backend
+                        const pagos =
+                          reserva.detalle?.pagos ??
+                          reserva.reserva?.detalle?.pagos ??
+                          [];
+
+                        const totalPagado = pagos.reduce(
+                          (acc, p) => acc + (p.monto_pago || 0),
+                          0,
+                        );
+
+                        const importeTotal =
+                          reserva.detalle?.importe_total ?? 0;
+                        const completo =
+                          totalPagado >= importeTotal && importeTotal > 0;
+
+                        return (
+                          <span
+                            className={`font-semibold ${completo ? "text-emerald-600" : "text-amber-600"}`}
+                          >
+                            S/ {totalPagado.toFixed(2)}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    {/* Importe Total */}
+                    <td className="px-6 py-4 font-medium text-center">
+                      S/ {parseFloat(reserva.detalle.importe_total).toFixed(2)}
+                    </td>
+
+                    {/* Acciones */}
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2 justify-center flex-wrap">
+                        {/* Editar */}
+                        <button
+                          onClick={() => {
+                            setSelectedReserva(reserva);
+                            setIsModalOpen(true);
+                          }}
+                          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-xs cursor-pointer transition"
+                        >
+                          Editar
+                        </button>
+
+                        {/* Reprogramar */}
+                        <button
+                          onClick={() => {
+                            setReservaAReprogramar(reserva);
+                            setIsReprogramarOpen(true);
+                          }}
+                          disabled={noReprogramable}
+                          title={
+                            noReprogramable
+                              ? `No se puede reprogramar una reserva ${reserva.reserva.estado}`
+                              : "Cambiar fecha y hora"
+                          }
+                          className="bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600 text-xs transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Reprogramar
+                        </button>
+                        {/* Agregar Pago — pégalo antes del botón Cancelar */}
+                        <button
+                          onClick={() => {
+                            setReservaParaPago(reserva);
+                            setIsPagoOpen(true);
+                          }}
+                          disabled={noCancelable} // misma lógica: cancelada/finalizada no permiten pagos
+                          title={
+                            noCancelable
+                              ? `No se puede pagar una reserva ${reserva.reserva.estado}`
+                              : "Registrar un nuevo pago"
+                          }
+                          className="bg-emerald-500 text-white px-3 py-1 rounded hover:bg-emerald-600 text-xs transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          + Pago
+                        </button>
+                        {/* Cancelar (renombrado desde Eliminar) */}
+                        <button
+                          onClick={() => {
+                            setReservaACancelar(reserva);
+                            setIsCancelarOpen(true);
+                          }}
+                          disabled={noCancelable}
+                          title={
+                            noCancelable
+                              ? `La reserva ya está ${reserva.reserva.estado}`
+                              : "Cancelar esta reserva"
+                          }
+                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
+      {/* Modal Editar */}
       <ModalBigVarios
         isOpen={isModalOpen}
         closeModal={() => setIsModalOpen(false)}
@@ -480,11 +569,50 @@ function ReservasList({ reservas, espacios, clientes, refreshPagina }) {
           ) : null
         }
       />
-      <ModalConfirmacion
-        isOpen={mostrarModal}
-        onClose={() => setMostrarModal(false)}
-        onConfirm={confirmarEliminarReserva}
-        mensaje="¿Estás seguro de que deseas eliminar esta reserva?"
+
+      {/* Modal Reprogramar */}
+      <ModalBigVarios
+        isOpen={isReprogramarOpen}
+        closeModal={() => {
+          setIsReprogramarOpen(false);
+          setReservaAReprogramar(null);
+        }}
+        vistaActiva="Reprogramar Reserva"
+        component={
+          reservaAReprogramar ? (
+            <ReprogramarReservaModal
+              reserva={reservaAReprogramar}
+              closeModal={() => {
+                setIsReprogramarOpen(false);
+                setReservaAReprogramar(null);
+              }}
+              refreshPagina={refreshPagina}
+            />
+          ) : null
+        }
+      />
+
+      {/* Modal Agregar Pago — pégalo junto a los demás modales al final */}
+      <ModalAgregarPago
+        isOpen={isPagoOpen}
+        onClose={() => {
+          setIsPagoOpen(false);
+          setReservaParaPago(null);
+          refreshPagina(); // recarga la lista para reflejar el nuevo pago
+        }}
+        reserva={reservaParaPago}
+      />
+
+      {/* Modal Cancelar (nuevo) */}
+      <ModalCancelarReserva
+        isOpen={isCancelarOpen}
+        onClose={() => {
+          setIsCancelarOpen(false);
+          setReservaACancelar(null);
+        }}
+        onConfirm={confirmarCancelarReserva}
+        reserva={reservaACancelar}
+        isLoading={isCancelando}
       />
     </div>
   );
