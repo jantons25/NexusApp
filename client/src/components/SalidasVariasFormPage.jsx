@@ -149,17 +149,34 @@ function SalidaVariasFormPage({ closeModal, refreshPagina, salida, products }) {
               {errors.producto.message}
             </p>
           )}
-          <select
-            {...register("producto")}
-            className="w-full bg-gray-200 px-4 py-2 rounded-md"
-          >
-            <option value="">Producto</option>
-            {products.map((product) => (
-              <option key={product._id} value={product._id}>
-                {product.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              {...register("producto")}
+              className="w-full bg-gray-200 px-4 py-2 rounded-md appearance-none pr-8"
+            >
+              <option value="">Producto</option>
+              {products.map((product) => (
+                <option key={product._id} value={product._id}>
+                  {product.nombre}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+              <svg
+                className="w-4 h-4 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
 
         <div className="relative w-40 my-2">
@@ -180,7 +197,7 @@ function SalidaVariasFormPage({ closeModal, refreshPagina, salida, products }) {
         <div className="w-30 flex justify-center items-end">
           <button
             type="submit"
-            className="bg-[#FCD535] text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2"
+            className="bg-[#FCD535] text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2 cursor-pointer"
           >
             Agregar
           </button>
@@ -262,7 +279,7 @@ function SalidaVariasFormPage({ closeModal, refreshPagina, salida, products }) {
               type="button"
               onClick={handleGuardarSalidas}
               disabled={isSubmitting}
-              className={`px-4 py-2 rounded-md my-2 text-zinc-800
+              className={`px-4 py-2 rounded-md my-2 text-zinc-800 cursor-pointer
         ${
           isSubmitting
             ? "bg-gray-400 cursor-not-allowed opacity-60"

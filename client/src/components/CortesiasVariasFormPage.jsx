@@ -161,7 +161,7 @@ function CortesiasVariasFormPage({
       )}
       <form
         onSubmit={onSubmit}
-        className="flex flex-row flex-wrap gap-4 items-center justify-start w-full"
+        className="flex flex-row flex-wrap gap-4 align-center justify-start"
       >
         {/* PRODUCTO */}
         <div className="relative w-40 my-2">
@@ -171,17 +171,34 @@ function CortesiasVariasFormPage({
               {errors.producto.message}
             </p>
           )}
-          <select
-            {...register("producto", { required: "Selecciona un producto" })}
-            className="w-full bg-gray-200 px-4 py-2 rounded-md"
-          >
-            <option value="">Producto</option>
-            {products.map((product) => (
-              <option key={product._id} value={product._id}>
-                {product.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              {...register("producto", { required: "Selecciona un producto" })}
+              className="w-full bg-gray-200 px-4 py-2 rounded-md appearance-none pr-8"
+            >
+              <option value="">Producto</option>
+              {products.map((product) => (
+                <option key={product._id} value={product._id}>
+                  {product.nombre}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+              <svg
+                className="w-4 h-4 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {/* CANTIDAD */}
@@ -211,17 +228,34 @@ function CortesiasVariasFormPage({
               {errors.responsable.message}
             </p>
           )}
-          <select
-            {...register("responsable", {
-              required: "Selecciona un responsable",
-            })}
-            className="w-full bg-gray-200 px-4 py-2 rounded-md"
-          >
-            <option value="">Responsable</option>
-            <option value="Bayron">Bayron</option>
-            <option value="Juanjo">Juanjo</option>
-            <option value="Roberto">Roberto</option>
-          </select>
+          <div className="relative">
+            <select
+              {...register("responsable", {
+                required: "Selecciona un responsable",
+              })}
+              className="w-full bg-gray-200 px-4 py-2 rounded-md appearance-none pr-8"
+            >
+              <option value="">Responsable</option>
+              <option value="Bayron">Bayron</option>
+              <option value="Juanjo">Juanjo</option>
+              <option value="Roberto">Roberto</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+              <svg
+                className="w-4 h-4 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {/* OBSERVACIÓN */}
@@ -248,7 +282,7 @@ function CortesiasVariasFormPage({
         <div className="w-30 flex justify-center items-end">
           <button
             type="submit"
-            className="bg-[#FCD535] text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2"
+            className="bg-[#FCD535] text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black cursor-pointer my-2"
           >
             Agregar
           </button>
@@ -356,14 +390,14 @@ function CortesiasVariasFormPage({
               type="button"
               onClick={handleGuardarCortesias}
               disabled={isSubmitting}
-              className={`px-4 py-2 rounded-md my-2 text-zinc-800
+              className={`px-4 py-2 rounded-md my-2 text-zinc-800 cursor-pointer
         ${
           isSubmitting
             ? "bg-gray-400 cursor-not-allowed opacity-60"
             : "bg-[#FCD535] hover:bg-yellow-300 hover:text-black"
         }`}
             >
-              {isSubmitting ? "Guardando..." : "Guardar Lote"}
+              {isSubmitting ? "Guardando..." : "Guardar"}
             </button>
           </div>
         </div>

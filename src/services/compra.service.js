@@ -28,6 +28,7 @@ export const crearCompras = async (comprasInput, userId) => {
       importe_compra: cantidad * precio_compra,
       fecha_vencimiento: fecha_vencimiento || null,
       producto,
+      observacion: compra.observacion || "",
       user: userId,
     });
 

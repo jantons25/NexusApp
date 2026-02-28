@@ -273,6 +273,7 @@ function VentasList({
                   className="mt-1 w-full text-center text-black border rounded px-2 py-1"
                 />
               </th>
+              <th className="px-6 py-3 text-center bg-gray-100">Observación</th>
               <th className="px-6 py-3 text-center bg-gray-100">Acciones</th>
             </tr>
           </thead>
@@ -324,7 +325,7 @@ function VentasList({
                       .reduce(
                         (acc, venta) =>
                           acc + parseFloat(venta.importe_venta || 0),
-                        0,
+                        0
                       )
                       .toFixed(2)}
                   </div>
@@ -336,8 +337,8 @@ function VentasList({
                         lote.ventas.map((v) =>
                           v.pago_registrado
                             ? v.pago_registrado.toLowerCase()
-                            : "",
-                        ),
+                            : ""
+                        )
                       ),
                     ].filter(Boolean);
 
@@ -366,6 +367,14 @@ function VentasList({
                 <td className="px-6 py-4 text-center">
                   {lote.ventas.slice(0, 3).map((venta, index) => (
                     <div key={index}>{venta.habitacion || "-"}</div>
+                  ))}
+                  {lote.ventas.length > 3 && (
+                    <div className="text-gray-400 text-sm italic">otros...</div>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-center">
+                  {lote.ventas.slice(0, 3).map((venta, index) => (
+                    <div key={index}>{venta.observacion || "-"}</div>
                   ))}
                   {lote.ventas.length > 3 && (
                     <div className="text-gray-400 text-sm italic">otros...</div>

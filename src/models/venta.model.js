@@ -63,6 +63,10 @@ const ventaSchema = new mongoose.Schema({
     ref: "Product",
     required: true,
   },
+  observacion: {
+    type: String,
+    default: "",
+  },
 }, {
   timestamps: true,
 });

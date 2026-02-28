@@ -228,14 +228,35 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
               {errors.pago_registrado.message}
             </p>
           )}
-          <select
-            {...register("pago_registrado")}
-            className="w-full bg-gray-200 px-4 py-2 rounded-md"
-          >
-            <option value="">¿Pagado?</option>
-            <option value="Si">Sí</option>
-            <option value="No">No</option>
-          </select>
+
+          {/* Wrapper relativo para posicionar la flecha */}
+          <div className="relative">
+            <select
+              {...register("pago_registrado")}
+              className="w-full bg-gray-200 px-4 py-2 rounded-md appearance-none pr-8"
+            >
+              <option value="">¿Pagado?</option>
+              <option value="Si">Sí</option>
+              <option value="No">No</option>
+            </select>
+
+            {/* Flecha personalizada */}
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+              <svg
+                className="w-4 h-4 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
         {pagoRegistrado === "No" && (
           <div className="relative w-40 my-2">
@@ -263,10 +284,31 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
           </div>
         )}
 
-        <div className="w-30 flex justify-center align-center">
+        {/* OBSERVACIÓN */}
+        <div className="relative w-60 my-2">
+          <label className="font-bold block text-left">Observaciones</label>
+          {errors.observacion && (
+            <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
+              {errors.observacion.message}
+            </p>
+          )}
+          <input
+            type="text"
+            placeholder="Observación (opcional)"
+            {...register("observacion", {
+              maxLength: {
+                value: 200,
+                message: "Máximo 200 caracteres",
+              },
+            })}
+            className="w-full bg-gray-200 px-4 py-2 rounded-md"
+          />
+        </div>
+
+        <div className="w-30 flex justify-center items-end">
           <button
             type="submit"
-            className="bg-[#FCD535]  text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2"
+            className="bg-[#FCD535]  text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2 cursor-pointer"
           >
             Agregar
           </button>
@@ -286,6 +328,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
                 <th className="px-6 py-3 text-center">Importe</th>
                 <th className="px-6 py-3 text-center">Pago Registrado</th>
                 <th className="px-6 py-3 text-center">Oficina</th>
+                <th className="px-6 py-3 text-center">Observación</th>
                 <th className="px-6 py-3 text-center rounded-tr-[10px]">
                   Acción
                 </th>
@@ -330,12 +373,15 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
                     <td className="px-6 py-4 text-center">
                       {venta.habitacion || "-"}
                     </td>
+                    <td className="px-6 py-4 text-center">
+                      {venta.observacion || "-"}
+                    </td>
                     <td className="px-6 py-4 flex gap-2 justify-center">
                       <button
                         onClick={() => {
                           const nuevasVentas = ventasTemporales.filter(
                             (_, i) => i !== index
-                          );
+                          );  
                           setVentasTemporales(nuevasVentas);
                         }}
                         className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs cursor-pointer"
@@ -376,7 +422,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
               type="button"
               onClick={handleGuardarVentas}
               disabled={isSubmitting}
-              className={`px-4 py-2 rounded-md my-2 text-zinc-800
+              className={`px-4 py-2 rounded-md my-2 text-zinc-800 cursor-pointer
         ${
           isSubmitting
             ? "bg-gray-400 cursor-not-allowed opacity-60"

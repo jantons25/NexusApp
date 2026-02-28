@@ -109,17 +109,34 @@ function ComprasVariasFormPage({
               {errors.producto.message}
             </p>
           )}
-          <select
-            {...register("producto")}
-            className="w-full bg-gray-200 px-4 py-2 rounded-md"
-          >
-            <option value="">Producto</option>
-            {products.map((product) => (
-              <option key={product._id} value={product._id}>
-                {product.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              {...register("producto")}
+              className="w-full bg-gray-200 px-4 py-2 rounded-md appearance-none pr-8"
+            >
+              <option value="">Producto</option>
+              {products.map((product) => (
+                <option key={product._id} value={product._id}>
+                  {product.nombre}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+              <svg
+                className="w-4 h-4 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
         <div className="relative w-40 my-2">
           <label className="font-bold block text-left">Cantidad</label>
@@ -136,7 +153,7 @@ function ComprasVariasFormPage({
           />
         </div>
         <div className="relative w-40 my-2">
-          <label className="font-bold block text-left">Precio</label>
+          <label className="font-bold block text-left">Px Unidad</label>
           {errors.precio_compra && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.precio_compra.message}
@@ -167,10 +184,30 @@ function ComprasVariasFormPage({
             })}
           />
         </div>
+        {/* OBSERVACIÓN */}
+        <div className="relative w-60 my-2">
+          <label className="font-bold block text-left">Observaciones</label>
+          {errors.observacion && (
+            <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
+              {errors.observacion.message}
+            </p>
+          )}
+          <input
+            type="text"
+            placeholder="Observación (opcional)"
+            {...register("observacion", {
+              maxLength: {
+                value: 200,
+                message: "Máximo 200 caracteres",
+              },
+            })}
+            className="w-full bg-gray-200 px-4 py-2 rounded-md"
+          />
+        </div>
         <div className="w-30 flex justify-center items-end">
           <button
             type="submit"
-            className="bg-[#FCD535]  text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2"
+            className="bg-[#FCD535]  text-zinc-800 px-4 py-2 rounded-md hover:bg-yellow-300 hover:text-black my-2 cursor-pointer"
           >
             Agregar
           </button>
@@ -188,6 +225,7 @@ function ComprasVariasFormPage({
                 <th className="px-6 py-3 text-center">Precio</th>
                 <th className="px-6 py-3 text-center">Importe</th>
                 <th className="px-6 py-3 text-center">Fecha Vencimiento</th>
+                <th className="px-6 py-3 text-center">Observación</th>
                 <th className="px-6 py-3 text-center rounded-tr-[10px]">
                   Acción
                 </th>
@@ -218,6 +256,9 @@ function ComprasVariasFormPage({
                         year: "numeric",
                       }
                     )}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    {compra.observacion || "-"}
                   </td>
                   <td className="px-6 py-4 flex gap-2 justify-center">
                     <button
@@ -264,7 +305,7 @@ function ComprasVariasFormPage({
               type="submit"
               onClick={handleGuardarCompras}
               disabled={isSubmitting}
-              className={`px-4 py-2 rounded-md my-2 text-zinc-800
+              className={`px-4 py-2 rounded-md my-2 text-zinc-800 cursor-pointer
         ${
           isSubmitting
             ? "bg-gray-400 cursor-not-allowed opacity-60"
