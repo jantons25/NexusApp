@@ -27,7 +27,7 @@ import { DetalleReservaProvider } from "./context/DetalleReservaContext.jsx";
 import { EspacioProvider } from "./context/EspacioContext.jsx";
 import ReservasPage from "./pages/ReservasPage.jsx";
 import Dashboard from "./pages/Dashboard";
-import CoworkingLanding from "./pages/CoworkingLanding.jsx";
+import CoworkingLanding from "./pages/Coworkinglanding.jsx";
 
 function App() {
   return (
