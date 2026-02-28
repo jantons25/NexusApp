@@ -1184,7 +1184,7 @@ export const getEspaciosPublicos = async (filtros = {}) => {
       "precio_por_hora",
       "piso",
       "servicios",
-      "fotos",
+      "imagenes",
       "estado",
       "sede",
     ].join(" ");

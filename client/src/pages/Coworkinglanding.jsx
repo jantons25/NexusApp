@@ -315,8 +315,8 @@ function ReservaModal({ espacio, onClose }) {
   const mitad = total / 2;
   const canReserve = fecha && selectedHours.length > 0;
 
-  const fotos = espacio.fotos?.length
-    ? espacio.fotos
+  const fotos = espacio.imagenes?.length
+    ? espacio.imagenes
     : [
         "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
       ];
@@ -745,11 +745,11 @@ function ReservaModal({ espacio, onClose }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SPACE CARD
+// SPACE CARD 
 // ─────────────────────────────────────────────────────────────────────────────
 function EspacioCard({ espacio, onReservar }) {
   const foto =
-    espacio.fotos?.[0] ||
+    espacio.imagenes?.[0] ||
     "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80";
 
   return (
@@ -942,10 +942,10 @@ export default function CoworkingLanding() {
               className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
               style={{ background: "#FCD535" }}
             >
-              C
+              N
             </div>
             <span className="font-black text-lg text-gray-900">
-              CoWork<span style={{ color: "#b89c00" }}>+</span>
+              Nexus<span style={{ color: "#FCD535" }}>App</span>
             </span>
           </div>
           <button
@@ -1158,12 +1158,14 @@ export default function CoworkingLanding() {
               className="w-6 h-6 rounded-md flex items-center justify-center font-black text-xs"
               style={{ background: "#FCD535" }}
             >
-              C
+              N
             </div>
-            <span className="font-black text-gray-900">CoWork+</span>
+            <span className="font-black text-lg text-gray-900">
+              Nexus<span style={{ color: "#FCD535" }}>App</span>
+            </span>
           </div>
           <p className="text-xs text-gray-400">
-            © 2025 CoWork+. Todos los derechos reservados.
+            © 2026 NexusApp. Todos los derechos reservados.
           </p>
         </div>
       </footer>

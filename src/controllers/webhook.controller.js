@@ -116,7 +116,10 @@ export const culqiWebhook = async (req, res) => {
     }
 
     // ── 7) Verificar que el espacio existe ────────────────────────────────────
-    const espacio = await Espacio.findById(espacioId, "_id nombre tipo").lean();
+    const espacio = await Espacio.findOne(
+      { _id: espacioId, estado: "disponible", habilitado_reservas: true },
+      "_id nombre tipo"
+    ).lean();
 
     if (!espacio) {
       console.error(`[Culqi Webhook] Espacio no encontrado: ${espacioId}`);
