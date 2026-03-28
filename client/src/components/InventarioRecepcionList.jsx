@@ -41,9 +41,6 @@ function InventarioCentralList({ products, compras, ventas, user }) {
                 Ingresos
               </th>
               <th className="px-6 py-3 text-center bg-red-200">Venta</th>
-              <th className="px-6 py-3 text-center bg-red-200">
-                Reposiciones <br /> habitaciones
-              </th>
               <th className="px-6 py-3 text-center bg-red-200">Cortesías</th>
               <th className="px-6 py-3 text-center bg-amber-100">
                 Stock Actual
@@ -71,10 +68,6 @@ function InventarioCentralList({ products, compras, ventas, user }) {
 
                 <td className="px-6 py-4 text-center">
                   {product.cantidad_vendida}
-                </td>
-
-                <td className="px-6 py-4 text-center">
-                  {product.cantidad_repuesta}
                 </td>
 
                 <td className="px-6 py-4 text-center">
