@@ -38,6 +38,10 @@ export const crearCompras = async (comprasInput, userId) => {
     const productoDB = await Product.findById(producto);
     if (productoDB) {
       productoDB.ingresos += cantidad;
+      productoDB.stock_total = Math.max(0,
+        (productoDB.ingresos || 0) - (productoDB.cantidad_vendida || 0) -
+        (productoDB.cantidad_repuesta || 0) - (productoDB.cantidad_cortesia || 0)
+      );
       await productoDB.save();
     }
   }
@@ -81,6 +85,10 @@ export const actualizarLoteCompras = async (ids, nuevasCompras, userId) => {
       }
 
       producto.ingresos = nuevoIngreso;
+      producto.stock_total = Math.max(0,
+        (producto.ingresos || 0) - (producto.cantidad_vendida || 0) -
+        (producto.cantidad_repuesta || 0) - (producto.cantidad_cortesia || 0)
+      );
       await producto.save();
     }
 
@@ -113,6 +121,10 @@ export const actualizarLoteCompras = async (ids, nuevasCompras, userId) => {
     const productoDB = await Product.findById(producto);
     if (productoDB) {
       productoDB.ingresos += parseInt(cantidad);
+      productoDB.stock_total = Math.max(0,
+        (productoDB.ingresos || 0) - (productoDB.cantidad_vendida || 0) -
+        (productoDB.cantidad_repuesta || 0) - (productoDB.cantidad_cortesia || 0)
+      );
       await productoDB.save();
     }
 
@@ -152,7 +164,6 @@ export const eliminarCompraPorId = async (compraId) => {
 export const eliminarLoteComprasPorId = async (id_lote) => {
   console.log("Eliminando lote de compras:", id_lote);
   const compras = await Compra.find({ id_lote });
-  console.log("Compras encontradas para el lote:", compras);
 
   if (!compras.length) {
     throw new Error("Lote no encontrado");

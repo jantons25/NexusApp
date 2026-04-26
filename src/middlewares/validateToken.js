@@ -7,7 +7,7 @@ export const authRequired = (req, res, next) => {
     if(!token) return res.status(401).json({message: "Ingreso denegado"})
 
     jwt.verify(token, TOKEN_SECRET, (err, user) => {
-        if(err) return res.status(401).json({message: "Credenciales invalidad"})
+        if(err) return res.status(401).json({message: "Credenciales inválidas"})
 
         req.user = user
         next()

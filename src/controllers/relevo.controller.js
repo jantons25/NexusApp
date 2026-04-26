@@ -17,11 +17,10 @@ export const getAllRelevos = async (req, res) => {
     const relevos = await Relevo.find().populate("user")
     res.json(relevos);
   } catch (error) {
-    console.error('🛑 Error al obtener los relevos:', error); // Agrega esto
+    console.error('🛑 Error al obtener los relevos:', error);
     res.status(500).json({
       message: 'Error al obtener los relevos',
       error: error.message,
-      stack: error.stack,
     });
   }
 }

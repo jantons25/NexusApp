@@ -10,8 +10,8 @@ export function createdAccessToken(payload) {
                 expiresIn: "1d"
             },
             (err, token) => {
-                if (err) reject(err);
-                resolve(token) 
+                if (err) return reject(err);
+                resolve(token);
             }
         )
     });

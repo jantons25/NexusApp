@@ -1,5 +1,6 @@
 import Lote from "../models/lote.model.js";
 import Product from "../models/product.model.js";
+import mongoose from "mongoose";
 
 function formatCodigo(n) {
   const s = String(n);

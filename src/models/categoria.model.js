@@ -14,7 +14,7 @@ const categoriaSchema = new mongoose.Schema(
       default: "",
     },
     estado: {
-      type: Boolean,
+      type: String,
       enum: ["activo", "inactivo"],
       default: "activo",
     },

@@ -6,12 +6,7 @@ export const getProducts = async () => {
     //1. Obtener todos los productos ordenados por nombre
     const products = await Product.find().sort({ nombre: 1 }).populate("user");
 
-    //2. Verificar si se encontraron productos
-    if (!products.length) {
-      throw new Error("No se encontraron productos.");
-    }
-
-    //3. Retornar los productos encontrados
+    //2. Retornar los productos encontrados (vacío si no hay)
     return products;
   } catch (error) {
     throw new Error(`Error al obtener productos: ${error.message}`);
@@ -35,7 +30,7 @@ export const createProduct = async (data, userId) => {
       descripcion: data.descripcion,
       categoria: data.categoria,
       unidad: data.unidad,
-      stock_mininmo: data.stock_minimo,
+      stock_minimo: data.stock_minimo,
       punto_reorden: data.punto_reorden,
       precio_venta: data.precio_venta,
       estado: data.estado || "activo",

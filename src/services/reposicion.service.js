@@ -23,7 +23,6 @@ export const crearReposiciones = async (reposicionesInput, userId) => {
 
   // 3. Procesar cada reposición individualmente
   for (const reposicion of reposiciones) {
-    console.log("Procesando reposición:", reposicion);
     const { cantidad, habitacion, responsable, observacion, producto } =
       reposicion;
 

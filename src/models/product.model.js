@@ -92,10 +92,6 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    precio_venta: {
-      type: Number,
-      default: 0.0,
-    },
     importe_compra: {
       type: Number,
       default: 0.0,
@@ -109,10 +105,6 @@ const productSchema = new mongoose.Schema(
       default: 0.0,
     },
     margen_acumulado: {
-      type: Number,
-      default: 0.0,
-    },
-    importe_venta: {
       type: Number,
       default: 0.0,
     },

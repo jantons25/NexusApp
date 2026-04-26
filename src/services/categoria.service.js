@@ -36,12 +36,7 @@ export const getCategorias = async () => {
     // 1. Obtener todas las categorías ordenadas por nombre
     const categorias = await Categoria.find().sort({ nombre: 1 });
 
-    // 2. Verificar si se encontraron categorías
-    if (!categorias.length) {
-      throw new Error("No se encontraron categorías.");
-    }
-
-    // 3. Retornar las categorías encontradas
+    // 2. Retornar las categorías encontradas (vacío si no hay)
     return {
       mensaje: "Categorías obtenidas correctamente.",
       categorias: categorias,

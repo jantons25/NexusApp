@@ -48,10 +48,7 @@ export const crearSalidas = async (salidasInput, userId) => {
       cantidad_disponible: { $gt: 0 },
     }).sort({ fecha_vencimiento: 1, createdAt: 1 });
 
-    console.log("Compras disponibles:", comprasDisponibles);
-
     for (const compra of comprasDisponibles) {
-      console.log("Procesando compra:", compra);
       if (cantidadRestante <= 0) break;
 
       const usar = Math.min(compra.cantidad_disponible, cantidadRestante);

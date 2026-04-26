@@ -6,7 +6,7 @@ const relevoSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    recepcioista: {
+    recepcionista: {
       type: String,
       required: true,
     },

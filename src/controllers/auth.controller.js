@@ -17,7 +17,7 @@ export const register = async (req, res) => {
       username,
       password: passwordHash,
       name: name || "",
-      role: role || "user",
+      role: "user", // Siempre "user" por seguridad — cambiar rol solo vía updateUser con permisos
       status: "active",
     });
 
@@ -92,19 +92,25 @@ export const logout = (req, res) => {
 };
 
 export const profile = async (req, res) => {
-  const userFound = await User.findById(req.user.id);
+  try {
+    const userFound = await User.findById(req.user.id);
 
-  if (!userFound)
-    return res.status(400).json({ message: "Usuario no encontrado" });
+    if (!userFound)
+      return res.status(400).json({ message: "Usuario no encontrado" });
 
-  return res.json({
-    id: userFound._id,
-    username: userFound.username,
-    name: userFound.name,
-    role: userFound.role,
-    createdAt: userFound.createdAt,
-    updatedAt: userFound.updatedAt,
-  });
+    return res.json({
+      id: userFound._id,
+      username: userFound.username,
+      name: userFound.name,
+      role: userFound.role,
+      createdAt: userFound.createdAt,
+      updatedAt: userFound.updatedAt,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Error al obtener perfil", error: error.message });
+  }
 };
 
 export const verifyTokenRequest = async (req, res) => {
@@ -145,7 +151,7 @@ export const deleteUser = async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado" });
 
     return res
-      .status(204)
+      .status(200)
       .json({ message: "Usuario desactivado correctamente" });
   } catch (error) {
     console.error("Error al desactivar usuario:", error);
@@ -156,16 +162,24 @@ export const deleteUser = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
-  const { password, ...rest } = req.body;
+  const { password, username, name, role, status } = req.body;
 
   try {
+    // Whitelist de campos permitidos para evitar mass-assignment
+    const updateFields = {};
+    if (username) updateFields.username = username;
+    if (name !== undefined) updateFields.name = name;
+    // Solo permitir cambio de role/status (idealmente verificar que req.user sea admin)
+    if (role && ["user", "admin"].includes(role)) updateFields.role = role;
+    if (status && ["active", "inactive"].includes(status)) updateFields.status = status;
+
     // Si viene una contraseña nueva, hashearla
     if (password && password.trim() !== "") {
-      rest.password = await bcrypt.hash(password, 10);
+      updateFields.password = await bcrypt.hash(password, 10);
     }
 
-    // Actualizar el usuario con los campos restantes
-    const user = await User.findByIdAndUpdate(req.params.id, rest, {
+    // Actualizar el usuario con los campos permitidos
+    const user = await User.findByIdAndUpdate(req.params.id, updateFields, {
       new: true,
     });
 

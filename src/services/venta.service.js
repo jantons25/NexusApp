@@ -106,6 +106,10 @@ export const crearVentas = async (ventasInput, userId) => {
         0,
         productoDB.cantidad_vendida + cantidad
       );
+      productoDB.stock_total = Math.max(0,
+        (productoDB.ingresos || 0) - (productoDB.cantidad_vendida || 0) -
+        (productoDB.cantidad_repuesta || 0) - (productoDB.cantidad_cortesia || 0)
+      );
       await productoDB.save();
     }
   }
@@ -180,7 +184,7 @@ export const actualizarLoteVentas = async (ids, nuevasVentas, userId) => {
     const salidasDisponibles = await Salida.find({
       producto,
       cantidad_disponible: { $gt: 0 },
-    }).sort({ fecha_vencimiento: 1, createdAt: 1 });
+    }).sort({ fecha_vencimiento_min: 1, createdAt: 1 });
 
     for (const salida of salidasDisponibles) {
       if (cantidadRestante <= 0) break;
@@ -233,6 +237,10 @@ export const actualizarLoteVentas = async (ids, nuevasVentas, userId) => {
     const productoDB = await Product.findById(producto);
     if (productoDB) {
       productoDB.cantidad_vendida += parseInt(cantidad);
+      productoDB.stock_total = Math.max(0,
+        (productoDB.ingresos || 0) - (productoDB.cantidad_vendida || 0) -
+        (productoDB.cantidad_repuesta || 0) - (productoDB.cantidad_cortesia || 0)
+      );
       await productoDB.save();
     }
   }
