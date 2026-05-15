@@ -294,7 +294,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
           )}
           <input
             type="text"
-            placeholder="Observación (opcional)"
+            placeholder="Cliente"
             {...register("observacion", {
               maxLength: {
                 value: 200,
