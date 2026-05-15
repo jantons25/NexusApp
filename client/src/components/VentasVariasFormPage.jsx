@@ -286,7 +286,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
 
         {/* OBSERVACIÓN */}
         <div className="relative w-60 my-2">
-          <label className="font-bold block text-left">Observaciones</label>
+          <label className="font-bold block text-left">Cliente</label>
           {errors.observacion && (
             <p className="absolute -top-4 left-0 text-red-500 text-xs z-10">
               {errors.observacion.message}
@@ -328,7 +328,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
                 <th className="px-6 py-3 text-center">Importe</th>
                 <th className="px-6 py-3 text-center">Pago Registrado</th>
                 <th className="px-6 py-3 text-center">Oficina</th>
-                <th className="px-6 py-3 text-center">Observación</th>
+                <th className="px-6 py-3 text-center">Cliente</th>
                 <th className="px-6 py-3 text-center rounded-tr-[10px]">
                   Acción
                 </th>
@@ -341,9 +341,8 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
                 return (
                   <tr
                     key={index}
-                    className={`border-b transition duration-150 ${
-                      !tieneStock ? "bg-red-200" : "hover:bg-gray-50"
-                    }`}
+                    className={`border-b transition duration-150 ${!tieneStock ? "bg-red-200" : "hover:bg-gray-50"
+                      }`}
                   >
                     <td className="px-6 py-4 text-center">
                       {venta.producto?.nombre || "Sin nombre"}
@@ -381,7 +380,7 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
                         onClick={() => {
                           const nuevasVentas = ventasTemporales.filter(
                             (_, i) => i !== index
-                          );  
+                          );
                           setVentasTemporales(nuevasVentas);
                         }}
                         className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs cursor-pointer"
@@ -423,11 +422,10 @@ function VentasVariasFormPage({ closeModal, refreshPagina, venta, products }) {
               onClick={handleGuardarVentas}
               disabled={isSubmitting}
               className={`px-4 py-2 rounded-md my-2 text-zinc-800 cursor-pointer
-        ${
-          isSubmitting
-            ? "bg-gray-400 cursor-not-allowed opacity-60"
-            : "bg-[#FCD535] hover:bg-yellow-300 hover:text-black"
-        }`}
+        ${isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed opacity-60"
+                  : "bg-[#FCD535] hover:bg-yellow-300 hover:text-black"
+                }`}
             >
               {isSubmitting ? "Registrando..." : textBoton}
             </button>
